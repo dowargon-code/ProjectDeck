@@ -2,8 +2,19 @@
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Tomlyn" Version="2.10.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 既定の settings.toml（原本は config\ の1か所だけで管理する） -->
+    <EmbeddedResource Include="..\..\config\settings.toml" LogicalName="settings.default.toml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="ProjectDeck.Core.Tests" />
+  </ItemGroup>
 
 </Project>
