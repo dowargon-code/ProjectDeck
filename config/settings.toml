@@ -1,0 +1,44 @@
+# ProjectDeck ユーザー設定
+
+[layout]
+rows = 3               # 縦の数
+cols = 5               # 横の数
+button_size = 64       # ボタン1個の大きさ(px)
+gap = 4                # ボタンの間隔(px)
+corner_radius = 8      # 角丸(px)
+
+[window]
+position = "bottom_right"   # top_left / top_right / bottom_right
+monitor = "primary"         # primary または 1,2,...
+margin = 8                  # 画面端(タスクバー)からの余白(px)
+topmost = true              # 起動時の最前面（📌ボタンで切替、切替結果はここに保存）
+opacity = 1.0               # 不透明度 0.3〜1.0
+hide_after_launch = false   # ボタン実行後にランチャーを隠すか
+
+[startup]
+auto_start = true      # PC起動（ログオン）時に自動実行
+show_on_start = true   # false ならトレイに隠して起動
+delay_sec = 0          # 起動を遅らせる秒数
+
+[dial]
+visible = true         # 起動時のダイヤル表示（◎ボタンで切替、切替結果はここに保存）
+
+[label]
+font = "Meiryo UI"
+size = 9               # pt
+color = "auto"         # auto / white / black / "#RRGGBB"
+
+[hotkey]
+toggle = "Ctrl+Alt+Space"       # 表示/非表示
+import_clipboard = "Ctrl+Alt+V" # クリップボードから取込
+undo = "Ctrl+Alt+Z"             # 1つ前に戻す
+
+[interface]
+path = "%USERPROFILE%\\ProjectDeck\\deck.json"
+debounce_ms = 300      # 変更検知後、読み込むまでの待ち時間
+history = 30           # 履歴の保存世代数
+
+[image]
+download_timeout_sec = 10
+max_size_mb = 5
+proxy = "system"       # system / none / "http://proxy:8080"

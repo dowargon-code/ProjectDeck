@@ -1,0 +1,10 @@
+<Project>
+  <!-- 全プロジェクト共通の設定。版数はここだけで管理する（build.ps1 もここから読む） -->
+  <PropertyGroup>
+    <Version>0.1.0</Version>
+    <Product>ProjectDeck</Product>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+</Project>

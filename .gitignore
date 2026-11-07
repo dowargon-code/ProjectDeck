@@ -1,0 +1,13 @@
+# ビルド出力（build.ps1 が作る）
+/dist/
+/build/
+
+# .NET のビルド中間ファイル
+bin/
+obj/
+TestResults/
+
+# Visual Studio
+.vs/
+*.user
+*.suo

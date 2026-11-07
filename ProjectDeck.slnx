@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/deckctl/deckctl.csproj" />
+    <Project Path="src/ProjectDeck.Core/ProjectDeck.Core.csproj" />
+    <Project Path="src/ProjectDeck/ProjectDeck.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ProjectDeck.Core.Tests/ProjectDeck.Core.Tests.csproj" />
+  </Folder>
+</Solution>
