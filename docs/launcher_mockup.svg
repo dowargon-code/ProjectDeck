@@ -1,4 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 660" font-family="'Meiryo UI', Meiryo, 'Yu Gothic UI', sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 720" font-family="'Meiryo UI', Meiryo, 'Yu Gothic UI', sans-serif">
+  <!-- ProjectDeck 画面イメージ（仕様書 v0.9 時点：ツールバー 32px・タブ 22px・右の部品 22px角） -->
   <defs>
     <clipPath id="btn"><rect x="0" y="0" width="64" height="64" rx="8"/></clipPath>
     <linearGradient id="shade" x1="0" y1="0" x2="0" y2="1">
@@ -14,17 +15,19 @@
     <radialGradient id="knob" cx="0.4" cy="0.35" r="0.7"><stop offset="0" stop-color="#6a707b"/><stop offset="1" stop-color="#2a2d33"/></radialGradient>
     <style>
       .lbl{font-size:9px;fill:#fff;stroke:#000;stroke-width:2.6px;paint-order:stroke;stroke-linejoin:round;text-anchor:middle;font-weight:bold}
-      .tab{font-size:9px;text-anchor:middle}
+      .tab{font-size:12px;text-anchor:middle}
       .note{font-size:13px;fill:#2b2f36}
       .ttl{font-size:15px;fill:#111;font-weight:bold}
       .mk{fill:#ffd400;stroke:#333;stroke-width:1}
       .mkt{font-size:11px;font-weight:bold;text-anchor:middle;fill:#111}
+      .dl{font-size:11px;fill:#c8cdd5}
+      .dv{font-size:12px;font-weight:bold}
     </style>
 
-    <!-- ===== ボタングリッド（共通） ===== -->
+    <!-- ===== ボタングリッド（ツールバー 32px + 余白 4px の下から） ===== -->
     <g id="grid">
-      <!-- r1c1 フォルダ -->
-      <g transform="translate(4,30)" clip-path="url(#btn)">
+      <!-- r1c1 フォルダ（関連付けアイコン） -->
+      <g transform="translate(4,36)" clip-path="url(#btn)">
         <rect width="64" height="64" fill="url(#gFolder)"/>
         <path d="M10 14 h16 l5 5 h23 v27 h-44 z" fill="#e3b341"/>
         <path d="M10 22 h44 v24 h-44 z" fill="#f2c65a"/>
@@ -32,7 +35,7 @@
         <text x="32" y="58" class="lbl">01_仕様書</text>
       </g>
       <!-- r1c2 Excel -->
-      <g transform="translate(72,30)" clip-path="url(#btn)">
+      <g transform="translate(72,36)" clip-path="url(#btn)">
         <rect width="64" height="64" fill="url(#gExcel)"/>
         <g stroke="#fff" stroke-opacity="0.25" stroke-width="1">
           <path d="M0 12h64M0 22h64M0 32h64M0 42h64M16 0v64M32 0v64M48 0v64"/>
@@ -42,7 +45,7 @@
         <text x="32" y="58" class="lbl">I/O一覧</text>
       </g>
       <!-- r1c3 Excel 試験成績書 -->
-      <g transform="translate(140,30)" clip-path="url(#btn)">
+      <g transform="translate(140,36)" clip-path="url(#btn)">
         <rect width="64" height="64" fill="url(#gExcel)"/>
         <rect x="12" y="26" width="8" height="20" fill="#fff" fill-opacity="0.8"/>
         <rect x="24" y="16" width="8" height="30" fill="#fff" fill-opacity="0.8"/>
@@ -51,20 +54,22 @@
         <rect y="36" width="64" height="28" fill="url(#shade)"/>
         <text x="32" y="58" class="lbl">試験成績書</text>
       </g>
-      <!-- r1c4 SCADA画面 -->
-      <g transform="translate(208,30)" clip-path="url(#btn)">
+      <!-- r1c4 NAS未接続（パスが無い → 暗く＋⚠） -->
+      <g transform="translate(208,36)" clip-path="url(#btn)">
         <rect width="64" height="64" fill="url(#gScada)"/>
         <rect x="10" y="10" width="44" height="30" rx="2" fill="#0a1a1e" stroke="#9fe" stroke-width="1.5"/>
         <path d="M14 32 l8 -8 l6 5 l10 -12 l12 9" fill="none" stroke="#5ff0a0" stroke-width="2"/>
         <rect y="36" width="64" height="28" fill="url(#shade)"/>
         <text x="32" y="58" class="lbl">SCADA画面</text>
+        <rect width="64" height="64" fill="#000" fill-opacity="0.58"/>
+        <path d="M52 4 L60 18 L44 18 Z" fill="#ffd400"/>
+        <path d="M52 9 v5 M52 15.5 v1" stroke="#282828" stroke-width="1.8"/>
       </g>
       <!-- r1c5 AE86（ネット画像を全面に割付） -->
-      <g transform="translate(276,30)" clip-path="url(#btn)">
+      <g transform="translate(276,36)" clip-path="url(#btn)">
         <rect width="64" height="64" fill="url(#gSunset)"/>
         <circle cx="46" cy="22" r="8" fill="#fff3c4" fill-opacity="0.85"/>
         <rect y="44" width="64" height="20" fill="#2b2433"/>
-        <!-- パンダ配色のハッチバック -->
         <path d="M4 44 L8 36 L20 33 L26 27 L44 27 L52 34 L60 36 L61 44 Z" fill="#f5f5f5"/>
         <path d="M4 44 L61 44 L61 47 L4 47 Z" fill="#111"/>
         <path d="M27 29 L43 29 L49 34 L24 34 Z" fill="#2c3a4a"/>
@@ -75,7 +80,7 @@
         <text x="32" y="59" class="lbl">AE86</text>
       </g>
       <!-- r2c1 GX Works3 -->
-      <g transform="translate(4,98)" clip-path="url(#btn)">
+      <g transform="translate(4,104)" clip-path="url(#btn)">
         <rect width="64" height="64" fill="#0e2a1e"/>
         <g stroke="#3ddc84" stroke-width="1.6" fill="none">
           <path d="M8 8v40M56 8v40M8 16h10M24 16h22M50 16h6M8 30h10M24 30h32"/>
@@ -86,14 +91,14 @@
         <text x="32" y="58" class="lbl">GX Works3</text>
       </g>
       <!-- r2c2 VS -->
-      <g transform="translate(72,98)" clip-path="url(#btn)">
+      <g transform="translate(72,104)" clip-path="url(#btn)">
         <rect width="64" height="64" fill="#5c2d91"/>
         <text x="32" y="34" font-size="24" fill="#e8dcff" text-anchor="middle" font-family="Consolas, monospace">{ }</text>
         <rect y="36" width="64" height="28" fill="url(#shade)"/>
         <text x="32" y="58" class="lbl">VSソリューション</text>
       </g>
       <!-- r2c3 客先ポータル -->
-      <g transform="translate(140,98)" clip-path="url(#btn)">
+      <g transform="translate(140,104)" clip-path="url(#btn)">
         <rect width="64" height="64" fill="url(#gGlobe)"/>
         <g fill="none" stroke="#cfe2ff" stroke-width="1.5">
           <circle cx="32" cy="26" r="16"/><ellipse cx="32" cy="26" rx="7" ry="16"/><path d="M16 26h32M19 18h26M19 34h26"/>
@@ -101,141 +106,163 @@
         <rect y="36" width="64" height="28" fill="url(#shade)"/>
         <text x="32" y="58" class="lbl">客先ポータル</text>
       </g>
-      <!-- r2c4 バックアップ -->
-      <g transform="translate(208,98)" clip-path="url(#btn)">
-        <rect width="64" height="64" fill="#1a1a1a"/>
-        <text x="10" y="30" font-size="18" fill="#3ddc84" font-family="Consolas, monospace">&gt;_</text>
+      <!-- r2c4 文字アイコン（画像も関連付けアイコンも無いとき） -->
+      <g transform="translate(208,104)" clip-path="url(#btn)">
+        <rect width="64" height="64" fill="#b0569a"/>
+        <text x="32" y="38" font-size="24" font-weight="bold" fill="#fff" fill-opacity="0.9" text-anchor="middle" font-family="'Segoe UI', sans-serif">バ</text>
         <rect y="36" width="64" height="28" fill="url(#shade)"/>
         <text x="32" y="58" class="lbl">バックアップ</text>
       </g>
-      <!-- r2c5 空き -->
-      <g transform="translate(276,98)">
-        <rect width="64" height="64" rx="8" fill="#22252b" stroke="#3a3f48" stroke-dasharray="4 3"/>
-        <text x="32" y="40" font-size="20" fill="#5a606b" text-anchor="middle">＋</text>
+      <!-- r2c5 空き（D&D の対象：青枠） -->
+      <g transform="translate(276,104)">
+        <rect width="64" height="64" rx="8" fill="#22252b" stroke="#3d7bd9" stroke-width="2"/>
+        <text x="32" y="40" font-size="20" fill="#3d7bd9" text-anchor="middle">＋</text>
       </g>
-      <!-- r3c1 作業開始セット(multi) -->
-      <g transform="translate(4,166)" clip-path="url(#btn)">
+      <!-- r3c1 作業開始セット(multi) 単色＋文字アイコン -->
+      <g transform="translate(4,172)" clip-path="url(#btn)">
         <rect width="64" height="64" fill="url(#gStart)"/>
-        <path d="M24 12 L44 25 L24 38 Z" fill="#fff" fill-opacity="0.9"/>
+        <text x="32" y="38" font-size="24" font-weight="bold" fill="#fff" fill-opacity="0.9" text-anchor="middle">作</text>
         <rect y="36" width="64" height="28" fill="url(#shade)"/>
         <text x="32" y="58" class="lbl">作業開始</text>
       </g>
       <!-- r3c2..5 空き -->
       <g fill="#22252b" stroke="#3a3f48" stroke-dasharray="4 3">
-        <rect x="72" y="166" width="64" height="64" rx="8"/>
-        <rect x="140" y="166" width="64" height="64" rx="8"/>
-        <rect x="208" y="166" width="64" height="64" rx="8"/>
-        <rect x="276" y="166" width="64" height="64" rx="8"/>
+        <rect x="72" y="172" width="64" height="64" rx="8"/>
+        <rect x="140" y="172" width="64" height="64" rx="8"/>
+        <rect x="208" y="172" width="64" height="64" rx="8"/>
+        <rect x="276" y="172" width="64" height="64" rx="8"/>
       </g>
       <g font-size="20" fill="#5a606b" text-anchor="middle">
-        <text x="104" y="206">＋</text><text x="172" y="206">＋</text><text x="240" y="206">＋</text><text x="308" y="206">＋</text>
+        <text x="104" y="212">＋</text><text x="172" y="212">＋</text><text x="240" y="212">＋</text><text x="308" y="212">＋</text>
       </g>
     </g>
 
-    <!-- タブ（共通） -->
+    <!-- タブ（高さ 22px・文字 12px）。右に隠れたタブがあれば › -->
     <g id="tabs">
-      <rect x="6" y="5" width="66" height="16" rx="4" fill="#3d7bd9"/>
-      <text x="39" y="16" class="tab" fill="#fff">A社 MES</text>
-      <rect x="76" y="5" width="66" height="16" rx="4" fill="#2c3038"/>
-      <text x="109" y="16" class="tab" fill="#b8bec8">B工場 SCADA</text>
-      <rect x="146" y="5" width="42" height="16" rx="4" fill="#2c3038"/>
-      <text x="167" y="16" class="tab" fill="#b8bec8">共通</text>
+      <rect x="6" y="5" width="68" height="22" rx="5" fill="#3d7bd9"/>
+      <text x="40" y="20" class="tab" fill="#fff">A社 MES</text>
+      <rect x="77" y="5" width="92" height="22" rx="5" fill="#2c3038"/>
+      <text x="123" y="20" class="tab" fill="#b8bec8">B工場 SCADA</text>
+      <rect x="172" y="5" width="46" height="22" rx="5" fill="#2c3038"/>
+      <text x="195" y="20" class="tab" fill="#b8bec8">共通</text>
     </g>
-    <!-- 画鋲アイコン -->
+    <!-- 右の部品のアイコン（22px角の中央に描く） -->
     <g id="pin">
-      <circle cx="0" cy="-3" r="3.2"/>
-      <path d="M-1 0 L1 0 L0.6 6 L-0.6 6 Z"/>
+      <circle cx="0" cy="-3.8" r="3.9"/>
+      <path d="M-1.2 -3.6 L1.2 -3.6 L0.7 4.9 L-0.7 4.9 Z"/>
     </g>
-    <!-- ダイヤルアイコン -->
     <g id="dialIcon">
-      <circle cx="0" cy="0" r="5" fill="none" stroke-width="1.6"/>
-      <path d="M0 0 L3 -3" stroke-width="1.6"/>
+      <circle cx="0" cy="0" r="6" fill="none" stroke-width="1.9"/>
+      <path d="M0 0 L3.7 -3.7" stroke-width="1.9"/>
+    </g>
+    <g id="gear" fill="none" stroke-width="1.9">
+      <circle cx="0" cy="0" r="4.3"/>
+      <path d="M4.3 0H7.3M-4.3 0H-7.3M0 4.3V7.3M0 -4.3V-7.3M3 3L5.2 5.2M-3 -3L-5.2 -5.2M3 -3L5.2 -5.2M-3 3L-5.2 5.2"/>
+    </g>
+    <g id="menu" stroke-width="1.7">
+      <path d="M-4.9 -4.3H4.9M-4.9 0H4.9M-4.9 4.3H4.9"/>
     </g>
   </defs>
 
-  <rect width="1120" height="660" fill="#f3f4f6"/>
+  <rect width="1120" height="720" fill="#f3f4f6"/>
 
   <!-- ================= ① 通常表示 ================= -->
   <text x="40" y="24" class="ttl">① 通常表示（ダイヤル表示ON・最前面ON）※1.5倍拡大</text>
   <g transform="translate(40,50) scale(1.5)">
-    <rect width="344" height="278" rx="10" fill="#1b1d22" stroke="#3a3f48"/>
+    <rect width="344" height="284" rx="10" fill="#1b1d22" stroke="#3a3f48"/>
     <use href="#tabs"/>
-    <!-- 読込みランプ（黄：読込中） -->
-    <circle cx="272" cy="13" r="6" fill="#ffd400" fill-opacity="0.25"/>
-    <circle cx="272" cy="13" r="3.6" fill="#ffd400"/>
-    <!-- 最前面 ON -->
-    <rect x="284" y="4" width="18" height="18" rx="4" fill="#3d7bd9"/>
-    <use href="#pin" transform="translate(293,13)" fill="#fff"/>
-    <!-- ダイヤル表示 ON -->
-    <rect x="304" y="4" width="18" height="18" rx="4" fill="#3d7bd9"/>
-    <use href="#dialIcon" transform="translate(313,13)" stroke="#fff"/>
-    <!-- メニュー -->
-    <rect x="324" y="4" width="16" height="18" rx="4" fill="#2c3038"/>
-    <text x="332" y="17" font-size="11" fill="#b8bec8" text-anchor="middle">≡</text>
+    <!-- 読込みランプ（黄：読込中） 幅を詰めた 14px の場所の中央 -->
+    <circle cx="237" cy="16" r="7.5" fill="#ffd400" fill-opacity="0.25"/>
+    <circle cx="237" cy="16" r="4.5" fill="#ffd400"/>
+    <!-- 📌 最前面 ON -->
+    <rect x="246" y="5" width="22" height="22" rx="5" fill="#3d7bd9"/>
+    <use href="#pin" transform="translate(257,16)" fill="#fff"/>
+    <!-- ◎ ダイヤル表示 ON -->
+    <rect x="270" y="5" width="22" height="22" rx="5" fill="#3d7bd9"/>
+    <use href="#dialIcon" transform="translate(281,16)" stroke="#fff"/>
+    <!-- ⚙ 設定 -->
+    <rect x="294" y="5" width="22" height="22" rx="5" fill="#2c3038"/>
+    <use href="#gear" transform="translate(305,16)" stroke="#b8bec8"/>
+    <!-- ≡ メニュー -->
+    <rect x="318" y="5" width="22" height="22" rx="5" fill="#2c3038"/>
+    <use href="#menu" transform="translate(329,16)" stroke="#b8bec8"/>
     <use href="#grid"/>
-    <!-- ダイヤル -->
-    <rect x="4" y="234" width="336" height="40" rx="6" fill="#15171b"/>
-    <g font-size="9" fill="#c8cdd5">
-      <circle cx="26" cy="254" r="12" fill="url(#knob)" stroke="#6b727d"/>
-      <line x1="26" y1="254" x2="33" y2="246" stroke="#3d7bd9" stroke-width="2.4" stroke-linecap="round"/>
-      <text x="44" y="251">音量</text><text x="44" y="264" fill="#7ab7ff" font-size="10">62%</text>
+    <!-- ダイヤル部（つまみ・目盛りの弧・指針・名前・値） -->
+    <rect x="4" y="240" width="336" height="40" rx="6" fill="#15171b"/>
+    <g>
+      <!-- 音量 62% -->
+      <circle cx="24" cy="260" r="12" fill="url(#knob)"/>
+      <path d="M13.4 270.6 A15 15 0 1 1 38.6 252.4" fill="none" stroke="#3a3f48" stroke-width="2.4"/>
+      <path d="M13.4 270.6 A15 15 0 0 1 28.1 245.6" fill="none" stroke="#7ab7ff" stroke-width="2.4" stroke-linecap="round"/>
+      <line x1="24" y1="260" x2="26.2" y2="251.3" stroke="#7ab7ff" stroke-width="2.4" stroke-linecap="round"/>
+      <text x="44" y="256" class="dl">音量</text><text x="44" y="272" class="dv" fill="#7ab7ff">62%</text>
 
-      <circle cx="138" cy="254" r="12" fill="url(#knob)" stroke="#6b727d"/>
-      <line x1="138" y1="254" x2="148" y2="253" stroke="#e3b341" stroke-width="2.4" stroke-linecap="round"/>
-      <text x="156" y="251">明るさ</text><text x="156" y="264" fill="#e3b341" font-size="10">80%</text>
+      <!-- 明るさ 80% -->
+      <circle cx="136" cy="260" r="12" fill="url(#knob)"/>
+      <path d="M125.4 270.6 A15 15 0 1 1 146.6 270.6" fill="none" stroke="#3a3f48" stroke-width="2.4"/>
+      <path d="M125.4 270.6 A15 15 0 1 1 150.3 255.4" fill="none" stroke="#e3b341" stroke-width="2.4" stroke-linecap="round"/>
+      <line x1="136" y1="260" x2="144.6" y2="257.2" stroke="#e3b341" stroke-width="2.4" stroke-linecap="round"/>
+      <text x="156" y="256" class="dl">明るさ</text><text x="156" y="272" class="dv" fill="#e3b341">80%</text>
 
-      <circle cx="250" cy="254" r="12" fill="url(#knob)" stroke="#6b727d"/>
-      <line x1="250" y1="254" x2="244" y2="244" stroke="#57ab5a" stroke-width="2.4" stroke-linecap="round"/>
-      <text x="268" y="251">マイク</text><text x="268" y="264" fill="#9fd8a2" font-size="10">35%</text>
+      <!-- マイク ミュート -->
+      <circle cx="248" cy="260" r="12" fill="url(#knob)"/>
+      <path d="M237.4 270.6 A15 15 0 1 1 258.6 270.6" fill="none" stroke="#3a3f48" stroke-width="2.4"/>
+      <path d="M237.4 270.6 A15 15 0 0 1 234.0 255.6" fill="none" stroke="#7d838d" stroke-width="2.4" stroke-linecap="round"/>
+      <line x1="248" y1="260" x2="239.7" y2="257.3" stroke="#7d838d" stroke-width="2.4" stroke-linecap="round"/>
+      <text x="268" y="256" class="dl">マイク</text><text x="268" y="272" class="dv" fill="#e5534b">ミュート</text>
     </g>
   </g>
 
   <!-- マーカー -->
   <g>
-    <circle cx="100" cy="42" r="9" class="mk"/><text x="100" y="46" class="mkt">1</text>
-    <circle cx="448" cy="42" r="9" class="mk"/><text x="448" y="46" class="mkt">2</text>
-    <circle cx="480" cy="42" r="9" class="mk"/><text x="480" y="46" class="mkt">3</text>
-    <circle cx="510" cy="42" r="9" class="mk"/><text x="510" y="46" class="mkt">4</text>
-    <circle cx="540" cy="42" r="9" class="mk"/><text x="540" y="46" class="mkt">5</text>
-    <circle cx="570" cy="143" r="9" class="mk"/><text x="570" y="147" class="mkt">6</text>
-    <circle cx="570" cy="347" r="9" class="mk"/><text x="570" y="351" class="mkt">7</text>
-    <circle cx="570" cy="431" r="9" class="mk"/><text x="570" y="435" class="mkt">8</text>
+    <circle cx="100" cy="40" r="9" class="mk"/><text x="100" y="44" class="mkt">1</text>
+    <circle cx="395" cy="40" r="9" class="mk"/><text x="395" y="44" class="mkt">2</text>
+    <circle cx="425" cy="40" r="9" class="mk"/><text x="425" y="44" class="mkt">3</text>
+    <circle cx="461" cy="40" r="9" class="mk"/><text x="461" y="44" class="mkt">4</text>
+    <circle cx="497" cy="40" r="9" class="mk"/><text x="497" y="44" class="mkt">5</text>
+    <circle cx="533" cy="40" r="9" class="mk"/><text x="533" y="44" class="mkt">6</text>
+    <circle cx="570" cy="152" r="9" class="mk"/><text x="570" y="156" class="mkt">7</text>
+    <circle cx="570" cy="254" r="9" class="mk"/><text x="570" y="258" class="mkt">8</text>
+    <circle cx="570" cy="440" r="9" class="mk"/><text x="570" y="444" class="mkt">9</text>
   </g>
 
   <!-- 凡例 -->
   <g class="note">
-    <text x="40" y="500">1 ページ（案件）タブ … タブ上でホイール回転でも切替</text>
-    <text x="40" y="522">2 読込みランプ … 消灯=待機 / 黄点滅=読込中・画像取得中 / 緑=反映完了 / 赤=エラー</text>
-    <text x="40" y="544">3 最前面ボタン（オルタネート）… 押すたびにON/OFF、ONで青</text>
-    <text x="40" y="566">4 ダイヤル表示/非表示ボタン（オルタネート）</text>
-    <text x="40" y="588">5 メニュー … deck.json・settings.toml を開く / 既定位置に戻す / 終了（⚙設定ボタンはメニューの左）</text>
-    <text x="40" y="610">6 画像はボタン全面に表示、文字は下部に縁取り付きで重ねる（背景色を見て白/黒を自動選択）</text>
-    <text x="40" y="632">7 空きボタン（ファイル・フォルダをドラッグ＆ドロップで登録）　8 ダイヤル（ホイールで調整・クリックでミュート）</text>
+    <text x="40" y="508">1 ページ（案件）タブ … クリックかホイールで切替。入りきらないときは隠れた側に ‹ › を表示</text>
+    <text x="40" y="530">2 読込みランプ … 灰=待機 / 黄点滅=読込中・画像取得中 / 緑=反映完了 / 橙=警告あり / 赤=エラー（クリックで内容）</text>
+    <text x="40" y="552">3 最前面ボタン（オルタネート）… 押すたびにON/OFF、ONで青</text>
+    <text x="40" y="574">4 ダイヤル表示/非表示ボタン（オルタネート）</text>
+    <text x="40" y="596">5 設定ボタン … 設定ダイアログ（settings.toml の全項目）</text>
+    <text x="40" y="618">6 メニュー … deck.json・settings.toml・データフォルダを開く / 既定位置に戻す / 終了</text>
+    <text x="40" y="640">7 ボタン … 画像は全面、文字は縁取り。パスが無いと暗く＋⚠。画像が無ければ関連付けアイコン → 文字アイコン</text>
+    <text x="40" y="662">8 空きボタン … ファイル・フォルダをドラッグ＆ドロップで登録（ドロップ先は青枠）</text>
+    <text x="40" y="684">9 ダイヤル … ホイールで step% / Shift+ホイールで1% / クリックでミュート。値は弧と針で表示</text>
   </g>
 
   <!-- ================= ② ダイヤル非表示 ================= -->
   <text x="680" y="24" class="ttl">② ダイヤル非表示・最前面OFF（実寸）</text>
   <g transform="translate(700,50)">
-    <rect width="344" height="234" rx="10" fill="#1b1d22" stroke="#3a3f48"/>
+    <rect width="344" height="240" rx="10" fill="#1b1d22" stroke="#3a3f48"/>
     <use href="#tabs"/>
     <!-- ランプ 緑：反映完了 -->
-    <circle cx="272" cy="13" r="6" fill="#57ab5a" fill-opacity="0.25"/>
-    <circle cx="272" cy="13" r="3.6" fill="#57ab5a"/>
-    <!-- 最前面 OFF -->
-    <rect x="284" y="4" width="18" height="18" rx="4" fill="#2c3038"/>
-    <use href="#pin" transform="translate(293,13)" fill="#7d838d"/>
-    <!-- ダイヤル OFF -->
-    <rect x="304" y="4" width="18" height="18" rx="4" fill="#2c3038"/>
-    <use href="#dialIcon" transform="translate(313,13)" stroke="#7d838d"/>
-    <rect x="324" y="4" width="16" height="18" rx="4" fill="#2c3038"/>
-    <text x="332" y="17" font-size="11" fill="#b8bec8" text-anchor="middle">≡</text>
+    <circle cx="237" cy="16" r="7.5" fill="#57ab5a" fill-opacity="0.25"/>
+    <circle cx="237" cy="16" r="4.5" fill="#57ab5a"/>
+    <rect x="246" y="5" width="22" height="22" rx="5" fill="#2c3038"/>
+    <use href="#pin" transform="translate(257,16)" fill="#7d838d"/>
+    <rect x="270" y="5" width="22" height="22" rx="5" fill="#2c3038"/>
+    <use href="#dialIcon" transform="translate(281,16)" stroke="#7d838d"/>
+    <rect x="294" y="5" width="22" height="22" rx="5" fill="#2c3038"/>
+    <use href="#gear" transform="translate(305,16)" stroke="#b8bec8"/>
+    <rect x="318" y="5" width="22" height="22" rx="5" fill="#2c3038"/>
+    <use href="#menu" transform="translate(329,16)" stroke="#b8bec8"/>
     <use href="#grid"/>
   </g>
-  <text x="700" y="304" class="note">サイズ例：64px × 5列 × 3行 → 約 344 × 234 px</text>
+  <text x="700" y="310" class="note">サイズ例：64px × 5列 × 3行 → 約 344 × 240 px</text>
+  <text x="700" y="330" class="note">（ダイヤル表示時 約 344 × 284 px）</text>
 
   <!-- ================= ③ 表示位置 ================= -->
-  <text x="680" y="350" class="ttl">③ 既定表示位置（TOMLで指定）</text>
-  <g transform="translate(700,368)">
+  <text x="680" y="356" class="ttl">③ 既定表示位置（settings.toml で指定）</text>
+  <g transform="translate(700,374)">
     <rect width="340" height="210" rx="4" fill="#cfd8e3" stroke="#8a96a6"/>
     <rect y="194" width="340" height="16" fill="#2b2f36"/>
     <text x="170" y="206" font-size="9" fill="#cfd8e3" text-anchor="middle">タスクバー</text>
@@ -248,6 +275,7 @@
     <path d="M226 186 v-30" stroke="#e5534b" stroke-width="1.5"/>
     <text x="222" y="176" font-size="9" fill="#c0392b" text-anchor="end">タスクバーの上に配置</text>
   </g>
-  <text x="700" y="598" class="note">作業領域（タスクバーを除いた範囲）基準で配置。</text>
-  <text x="700" y="618" class="note">余白 margin も指定可。手動で動かした位置は記憶。</text>
+  <text x="700" y="604" class="note">作業領域（タスクバーを除いた範囲）基準で配置。</text>
+  <text x="700" y="624" class="note">余白 margin も指定可。ドラッグで動かした位置は記憶し、</text>
+  <text x="700" y="644" class="note">≡メニュー「既定位置に戻す」で戻せる。表示倍率に合わせて拡大。</text>
 </svg>
