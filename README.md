@@ -30,6 +30,7 @@ ProjectDeck/
 ```
 
 実行時のデータ（`deck.json`・`settings.toml`・`history\`・`cache\`・`logs\`・`inbox\`）は、exe の隣ではなく `%USERPROFILE%\ProjectDeck\` に置きます。
+Grok などの AI のコマンドで使う deckctl は、ランチャーが起動のたびに `%USERPROFILE%\ProjectDeck\deckctl\` へコピーしたものです（本体の置き場所が変わってもパスが変わらない）。
 `settings.toml` が無いときは、exe の隣にある原本（`config\settings.toml` のコピー）を複製して使い始めます。
 
 ## 実装状況
