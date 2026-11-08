@@ -11,6 +11,7 @@ Stream Deck のような見た目の、Windows 用の常駐ランチャーです
 ProjectDeck/
 ├── .gitignore               # dist/・build/・bin/・obj/ を除外
 ├── README.md
+├── THIRD_PARTY_NOTICES.md   # 同梱ライブラリのライセンス（配布物にも入る）
 ├── Directory.Build.props    # 全プロジェクト共通の設定（版数 <Version> はここ）
 ├── ProjectDeck.slnx         # ソリューション（Visual Studio 2026 で開く）
 ├── build.ps1                # ビルドの入口：dist\ に配布物を作る
@@ -25,7 +26,7 @@ ProjectDeck/
 │   └── ProjectDeck.Core.Tests/  # Core の単体テスト（xUnit）
 ├── build/                   # [Git管理外] 発行の中間ファイル
 └── dist/                    # [Git管理外] build.ps1 が作る
-    ├── ProjectDeck/         #   ProjectDeck.exe・deckctl.exe・settings.toml・README.md
+    ├── ProjectDeck/         #   ProjectDeck.exe・deckctl.exe・settings.toml・README.md・THIRD_PARTY_NOTICES.md
     └── ProjectDeck-v<版>.zip  # 上のフォルダの中身
 ```
 
@@ -83,3 +84,30 @@ dotnet test ProjectDeck.slnx
 テストを実行してから、`dist\ProjectDeck\` と `dist\ProjectDeck-v<版>.zip` を作ります。
 発行形式はフレームワーク依存（win-x64、ReadyToRun）です。実行する PC には .NET 10 デスクトップランタイムが必要です。
 版数を上げるときは `Directory.Build.props` の `<Version>` を書き換えます。
+
+## 配布・更新
+
+自作ツールの運用に合わせて、GitHub の Releases に zip を登録し、`C:\Tools\ProjectDeck\` に置いて使います。
+
+### リリースを作る
+
+1. `Directory.Build.props` の `<Version>` を上げて、PR でマージする
+2. `main` で `.\build.ps1` を実行し、`dist\ProjectDeck-v<版>.zip` を作る
+3. GitHub の Releases に、タグ `v<版>`・タイトル `ProjectDeck <版>` で zip を登録する
+
+### 初めて置くとき
+
+1. 開発用の `dist` から起動しているランチャーがあれば、≡メニュー →「終了」で閉じる
+2. `ProjectDeck-v<版>.zip` を `C:\Tools\ProjectDeck\` に展開する
+3. `C:\Tools\ProjectDeck\ProjectDeck.exe` を起動する
+   - PC起動時の自動実行の登録が、この exe に自動で切り替わる
+   - Grok が使う deckctl のコピー（`%USERPROFILE%\ProjectDeck\deckctl\`）も、この版に自動で更新される
+
+### 更新するとき
+
+1. ランチャーを ≡メニュー →「終了」で閉じる
+2. 新しい zip の中身で `C:\Tools\ProjectDeck\` を上書きする
+3. `ProjectDeck.exe` を起動する
+
+ボタンの割付（deck.json）・設定（settings.toml）・履歴などは `%USERPROFILE%\ProjectDeck\` にあるので、上書きしても消えません。
+`C:\Tools\ProjectDeck\settings.toml` は初回用の原本で、普段は使われません。
