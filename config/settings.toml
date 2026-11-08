@@ -30,8 +30,6 @@ color = "auto"         # auto / white / black / "#RRGGBB"
 
 [hotkey]
 toggle = "Ctrl+Alt+Space"       # 表示/非表示
-import_clipboard = "Ctrl+Alt+V" # クリップボードから取込
-undo = "Ctrl+Alt+Z"             # 1つ前に戻す
 
 [interface]
 path = "%USERPROFILE%\\ProjectDeck\\deck.json"

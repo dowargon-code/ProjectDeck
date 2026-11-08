@@ -25,33 +25,18 @@ internal sealed partial class MainForm
     private DeckButton? _menuButton;
 
     private const int HotkeyToggle = 1;
-    private const int HotkeyImport = 2;
-    private const int HotkeyUndo = 3;
 
     // ================= メニュー・トレイ =================
 
     private void InitMenus()
     {
         _menu = new ContextMenuStrip();
-        _menu.Items.Add("このページの定義をコピー", null, (_, _) => CopyPageDefinition());
-        _menu.Items.Add("全ページの定義をコピー", null, (_, _) => CopyAllDefinitions());
-        var import = new ToolStripMenuItem("クリップボードから取込", null, (_, _) => ImportClipboard());
-        var undo = new ToolStripMenuItem("元に戻す", null, (_, _) => UndoDeck());
-        _menu.Items.Add(import);
-        _menu.Items.Add(undo);
-        _menu.Items.Add(new ToolStripSeparator());
         _menu.Items.Add("deck.json を開く", null, (_, _) => OpenText(_deckStore.DeckPath));
         _menu.Items.Add("settings.toml を開く", null, (_, _) => OpenText(_settingsStore.SettingsPath));
         _menu.Items.Add("データフォルダを開く", null, (_, _) => StartShell("explorer.exe", $"\"{AppPaths.DataDirectory}\""));
         _menu.Items.Add("既定位置に戻す", null, (_, _) => ResetPosition());
         _menu.Items.Add(new ToolStripSeparator());
         _menu.Items.Add("終了", null, (_, _) => ExitApp());
-        _menu.Opening += (_, _) =>
-        {
-            import.ShortcutKeyDisplayString = _settings.Hotkey.ImportClipboard;
-            undo.ShortcutKeyDisplayString = _settings.Hotkey.Undo;
-            undo.Enabled = _deckStore.HistoryFiles().Count > 0;
-        };
 
         _buttonMenu = new ContextMenuStrip();
         var openLocation = new ToolStripMenuItem("場所を開く", null, (_, _) => OpenButtonLocation());
@@ -275,7 +260,7 @@ internal sealed partial class MainForm
     private void DeleteButton()
     {
         if (_menuButton is not { } b || CurrentPage is not { } page) return;
-        if (MessageBox.Show(this, $"ボタン「{b.Label}」を削除しますか？\n（メニューの「元に戻す」で戻せます）", "ProjectDeck",
+        if (MessageBox.Show(this, $"ボタン「{b.Label}」を削除しますか？\n（削除前の状態は履歴に残ります）", "ProjectDeck",
                 MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
             return;
         var patch = NewPatch();
@@ -400,28 +385,6 @@ internal sealed partial class MainForm
         return p;
     }
 
-    // ================= 定義のコピー（Grok との受け渡し補助・ルートB） =================
-
-    private void CopyPageDefinition()
-    {
-        var v = _deckStore.ValidateCurrent();
-        if (!v.Ok || _pageId == null || DeckInfo.PageDetail(v.Root!, v.Deck!, _pageId, Rows, Cols) is not { } detail)
-        {
-            MessageBox.Show(this, "コピーできるページがありません。", "ProjectDeck", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            return;
-        }
-        Clipboard.SetText(detail.ToJsonString(DeckJson.WriteOptions));
-        Notify("コピー", "このページの定義をコピーしました");
-    }
-
-    private void CopyAllDefinitions()
-    {
-        var text = _deckStore.ReadText();
-        if (text == null) return;
-        Clipboard.SetText(text);
-        Notify("コピー", "全ページの定義をコピーしました");
-    }
-
     // ================= ツールバーのボタン =================
 
     private void ToggleTopmost()
@@ -534,8 +497,6 @@ internal sealed partial class MainForm
         if (!IsHandleCreated) return;
         _miscWarnings.RemoveAll(w => w.StartsWith("ホットキー", StringComparison.Ordinal));
         Register(HotkeyToggle, _settings.Hotkey.Toggle, "表示/非表示");
-        Register(HotkeyImport, _settings.Hotkey.ImportClipboard, "クリップボード取込");
-        Register(HotkeyUndo, _settings.Hotkey.Undo, "元に戻す");
         Invalidate(LampRect);
 
         void Register(int id, string text, string name)
@@ -560,12 +521,7 @@ internal sealed partial class MainForm
     {
         if (m.Msg == NativeMethods.WM_HOTKEY)
         {
-            switch ((int)m.WParam)
-            {
-                case HotkeyToggle: ToggleLauncher(); break;
-                case HotkeyImport: ShowLauncher(); ImportClipboard(); break;
-                case HotkeyUndo: ShowLauncher(); UndoDeck(); break;
-            }
+            if ((int)m.WParam == HotkeyToggle) ToggleLauncher();
             return;
         }
         if (m.Msg == NativeMethods.WM_EXITSIZEMOVE)

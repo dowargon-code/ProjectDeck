@@ -1,7 +1,6 @@
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using System.Text.RegularExpressions;
 
 namespace ProjectDeck.Core.Deck;
 
@@ -51,19 +50,6 @@ public static partial class DeckJson
         }
     }
 
-    /// <summary>
-    /// クリップボードの文章などから JSON 部分を取り出す。
-    /// ```json ～ ``` があればその中身、無ければ最初の { ～ 最後の }。
-    /// </summary>
-    public static string? ExtractJson(string text)
-    {
-        var m = FenceRegex().Match(text);
-        if (m.Success) return m.Groups[1].Value.Trim();
-        var start = text.IndexOf('{');
-        var end = text.LastIndexOf('}');
-        return start >= 0 && end > start ? text[start..(end + 1)] : null;
-    }
-
     /// <summary>空の deck.json（ファイルが無いときの初期状態）</summary>
     public static JsonObject EmptyDeck() => new()
     {
@@ -72,9 +58,6 @@ public static partial class DeckJson
         ["updated_by"] = "app",
         ["pages"] = new JsonArray(),
     };
-
-    [GeneratedRegex(@"```[a-zA-Z]*\s*\r?\n(.*?)```", RegexOptions.Singleline)]
-    private static partial Regex FenceRegex();
 }
 
 /// <summary>JsonNode の補助</summary>

@@ -77,9 +77,8 @@ public sealed record LabelSettings
 
 public sealed record HotkeySettings
 {
+    /// <summary>表示/非表示（Windows 全体で有効）</summary>
     public string Toggle { get; set; } = "Ctrl+Alt+Space";
-    public string ImportClipboard { get; set; } = "Ctrl+Alt+V";
-    public string Undo { get; set; } = "Ctrl+Alt+Z";
 }
 
 public sealed record InterfaceSettings

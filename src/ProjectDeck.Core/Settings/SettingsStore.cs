@@ -130,8 +130,6 @@ public sealed class SettingsStore(string path)
         SetIf("label", "color", old.Label.Color, s.Label.Color, L);
 
         SetIf("hotkey", "toggle", old.Hotkey.Toggle, s.Hotkey.Toggle, L);
-        SetIf("hotkey", "import_clipboard", old.Hotkey.ImportClipboard, s.Hotkey.ImportClipboard, L);
-        SetIf("hotkey", "undo", old.Hotkey.Undo, s.Hotkey.Undo, L);
 
         SetIf("interface", "path", old.Interface.Path, s.Interface.Path, L);
         SetIf("interface", "debounce_ms", old.Interface.DebounceMs, s.Interface.DebounceMs, L);
@@ -206,8 +204,6 @@ public sealed class SettingsStore(string path)
         s.Label.Color = reader.Str("label", "color", s.Label.Color);
 
         s.Hotkey.Toggle = reader.Str("hotkey", "toggle", s.Hotkey.Toggle);
-        s.Hotkey.ImportClipboard = reader.Str("hotkey", "import_clipboard", s.Hotkey.ImportClipboard);
-        s.Hotkey.Undo = reader.Str("hotkey", "undo", s.Hotkey.Undo);
 
         s.Interface.Path = reader.Str("interface", "path", s.Interface.Path);
         s.Interface.DebounceMs = reader.Int("interface", "debounce_ms", s.Interface.DebounceMs, SettingsLimits.DebounceMs);

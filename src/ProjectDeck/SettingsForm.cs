@@ -53,8 +53,6 @@ internal sealed partial class SettingsForm : Form
 
     // ホットキー
     private readonly TextBox _hkToggle = HotkeyBox();
-    private readonly TextBox _hkImport = HotkeyBox();
-    private readonly TextBox _hkUndo = HotkeyBox();
 
     // 詳細
     private readonly TextBox _deckPath = new() { Width = 300 };
@@ -146,8 +144,6 @@ internal sealed partial class SettingsForm : Form
         // ホットキー
         var hotkey = Page(tabs, "ホットキー");
         Row(hotkey, "表示/非表示", _hkToggle);
-        Row(hotkey, "クリップボード取込", _hkImport);
-        Row(hotkey, "元に戻す", _hkUndo);
         Row(hotkey, "", new Label
         {
             AutoSize = true,
@@ -189,7 +185,7 @@ internal sealed partial class SettingsForm : Form
 
         // 値が変わったらプレビューと入力チェックを更新
         foreach (var c in new Control[] { _rows, _cols, _buttonSize, _gap, _radius, _labelColorHex, _proxy, _deckPath,
-                     _hkToggle, _hkImport, _hkUndo, _monitor, _font })
+                     _hkToggle, _monitor, _font })
             c.TextChanged += (_, _) => OnValueChanged();
         foreach (var n in new[] { _rows, _cols, _buttonSize, _gap, _radius })
             n.ValueChanged += (_, _) => OnValueChanged();
@@ -291,8 +287,6 @@ internal sealed partial class SettingsForm : Form
         _dialVisible.Checked = s.Dial.Visible;
 
         _hkToggle.Text = s.Hotkey.Toggle;
-        _hkImport.Text = s.Hotkey.ImportClipboard;
-        _hkUndo.Text = s.Hotkey.Undo;
 
         _deckPath.Text = s.Interface.Path;
         _debounce.Value = s.Interface.DebounceMs;
@@ -331,8 +325,6 @@ internal sealed partial class SettingsForm : Form
         s.Dial.Visible = _dialVisible.Checked;
 
         s.Hotkey.Toggle = _hkToggle.Text;
-        s.Hotkey.ImportClipboard = _hkImport.Text;
-        s.Hotkey.Undo = _hkUndo.Text;
 
         s.Interface.Path = _deckPath.Text.Trim();
         s.Interface.DebounceMs = (int)_debounce.Value;
@@ -361,15 +353,9 @@ internal sealed partial class SettingsForm : Form
             "モニタは primary または 1 以上の番号です", errors);
         Mark(_font, _font.Text.Trim().Length > 0, "フォントを入力してください", errors);
 
-        // ホットキーの重複
-        var keys = new[] { _hkToggle, _hkImport, _hkUndo };
-        foreach (var box in keys)
-        {
-            var norm = Hotkey.Normalize(box.Text);
-            var dup = norm.Length > 0 && keys.Count(k => Hotkey.Normalize(k.Text) == norm) > 1;
-            Mark(box, !dup, "ホットキーが重複しています", errors);
-            if (!dup) box.BackColor = SystemColors.Window;
-        }
+        // ホットキー（空欄は「使わない」）
+        Mark(_hkToggle, _hkToggle.Text.Length == 0 || Hotkey.TryParse(_hkToggle.Text, out _, out _),
+            "ホットキーは Ctrl / Alt / Shift とキーの組み合わせにしてください", errors);
 
         _ok.Enabled = errors.Count == 0;
         _status.Text = errors.FirstOrDefault() ?? "";

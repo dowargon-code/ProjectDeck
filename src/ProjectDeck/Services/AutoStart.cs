@@ -25,6 +25,11 @@ internal static class AutoStart
         {
             var exe = Environment.ProcessPath;
             if (exe == null) return null;
+
+            // 動作確認用のデータフォルダ（PROJECTDECK_HOME）で動かしているときは、
+            // 普段使いの登録を消したり書き換えたりしないよう、レジストリに触れない
+            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("PROJECTDECK_HOME")))
+                return null;
             using var key = Registry.CurrentUser.CreateSubKey(RunKey, writable: true);
             var current = key.GetValue(ValueName) as string;
 

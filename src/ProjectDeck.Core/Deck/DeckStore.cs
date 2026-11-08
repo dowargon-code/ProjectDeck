@@ -61,7 +61,7 @@ public sealed class ApplyOutcome
 public sealed class DeckLockException(string message) : Exception(message);
 
 /// <summary>
-/// deck.json の読み書きをまとめたもの。本体（D&amp;D登録・取込・元に戻す）と deckctl の両方から使う。
+/// deck.json の読み書きをまとめたもの。本体（D&amp;D登録・削除）と deckctl（apply・undo）の両方から使う。
 /// ・ロックファイルで同時書き込みを防ぐ（取れなければ最大3秒待つ）
 /// ・一時ファイルに書いてから置き換える（書きかけを残さない）
 /// ・書き込み前の内容を history\ にバックアップ（既定30世代）
@@ -166,22 +166,6 @@ public sealed class DeckStore(string deckPath, string historyDirectory, int hist
             var pr = DeckPatcher.Apply(current, patchNode);
             return (pr.Result, pr);
         }, dryRun, force);
-
-    /// <summary>
-    /// deck.json 全体を置き換える（クリップボードからの全体取込）。revision は現在の値+1 にする。
-    /// </summary>
-    public ApplyOutcome ReplaceAll(string fullText, string updatedBy, bool dryRun = false, bool force = false)
-    {
-        var node = DeckJson.TryParse(fullText, out var parseError);
-        if (node is not JsonObject obj) return ApplyOutcome.Fail(1, parseError ?? "最上位は { } のオブジェクトである必要があります");
-        return Update(current =>
-        {
-            var next = (JsonObject)obj.DeepClone();
-            next["revision"] = RevisionOf(current) + 1;
-            next["updated_by"] = updatedBy;
-            return (next, null);
-        }, dryRun, force);
-    }
 
     /// <summary>1つ前の履歴に戻す（使った履歴ファイルは消すので、繰り返すとさらに前に戻る）</summary>
     public ApplyOutcome Undo()
