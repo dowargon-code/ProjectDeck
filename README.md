@@ -18,6 +18,7 @@ ProjectDeck/
 ├── config/                  # [Git管理] 配布物に同梱する設定ファイルの原本
 │   └── settings.toml
 ├── docs/                    # [Git管理] 仕様書・Grok用プロンプト・画面モック・引き継ぎ表（保守はこのリポジトリで行う）
+├── grokbot/                 # [Git管理] Grok Bot に読み込ませるスキル（SKILL.md。配布物にも入る）
 ├── src/                     # [Git管理] ソースコード
 │   ├── ProjectDeck/         #   ランチャー本体（WinForms）
 │   ├── ProjectDeck.Core/    #   共通処理（deck.json/TOML の読込・検証・パッチ適用・履歴）
@@ -26,7 +27,7 @@ ProjectDeck/
 │   └── ProjectDeck.Core.Tests/  # Core の単体テスト（xUnit）
 ├── build/                   # [Git管理外] 発行の中間ファイル
 └── dist/                    # [Git管理外] build.ps1 が作る
-    ├── ProjectDeck/         #   ProjectDeck.exe・deckctl.exe・settings.toml・README.md・THIRD_PARTY_NOTICES.md
+    ├── ProjectDeck/         #   ProjectDeck.exe・deckctl.exe・settings.toml・README.md・THIRD_PARTY_NOTICES.md・grokbot\SKILL.md
     └── ProjectDeck-v<版>.zip  # 上のフォルダの中身
 ```
 
@@ -102,6 +103,18 @@ dotnet test ProjectDeck.slnx
 3. `C:\Tools\ProjectDeck\ProjectDeck.exe` を起動する
    - PC起動時の自動実行の登録が、この exe に自動で切り替わる
    - Grok が使う deckctl のコピー（`%USERPROFILE%\ProjectDeck\deckctl\`）も、この版に自動で更新される
+
+### Grok Bot にスキルを読ませる
+
+Grok Bot からランチャーのボタンを編集するには、付属のスキルを Grok Bot に登録します。
+
+1. `C:\Tools\ProjectDeck\grokbot\SKILL.md`（リポジトリでは `grokbot/SKILL.md`）を Grok Bot とのチャットに添付する
+2. 「このファイルを読んで、スキルとして登録して」と頼む（登録済みなら「この内容でスキルを置き換えて」）
+3. 操作する Windows PC の接続と、`deckctl` の場所を確認してもらう
+   - 「ランチャーのページ一覧を見せて」と頼み、ページ名とボタン数が返ってくれば準備完了
+   - Grok Bot は `%USERPROFILE%\ProjectDeck\deckctl\deckctl.exe` を使う。ランチャーを一度起動していないとまだ無いので、先に `ProjectDeck.exe` を起動しておく
+
+スキルの要点と、直すときの手順は `docs/Grok用プロンプト.md` の2章にあります。
 
 ### 更新するとき
 
