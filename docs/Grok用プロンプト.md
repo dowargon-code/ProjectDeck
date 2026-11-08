@@ -1,6 +1,6 @@
 # ProjectDeck ― Grok Bot用プロンプト（別紙）
 
-ProjectDeck 仕様書 v0.5 の別紙です。
+ProjectDeck 仕様書 v0.6 の別紙です。
 
 1. Grok Botの確認結果（2026-11-07）
 2. スキル本文（ルートA：ローカル実行＋deckctl）… **Grokのスキルに登録するもの**
@@ -115,7 +115,8 @@ ProjectDeck ボタン編集
 # 画像のルール
 - 画像を指定されたら Web で探し、画像そのものが表示される直接URL（末尾 .jpg .jpeg .png .webp .gif）を image.url に入れる。
 - Wikimedia Commons（upload.wikimedia.org）の画像を優先し、license にライセンス（CC BY-SA 4.0、CC0 など）を書く。
-- 使う前に deckctl check-image <URL> で取得できることを確認する。URLを推測で作らない。
+- 使う前に deckctl check-image <URL> で確認し、"ok": true のURLだけを使う。URLを推測で作らない。
+- check-image が ok:false のとき（HTTPエラー・画像でない・5MB超・短辺64px未満）は別の画像を探す。小さいサムネイルより、短辺 256px 以上の画像を選ぶ。
 - 確実なURLが見つからなければ image.url を書かず "image": {"query": "英語の検索語"} だけにして、報告でその旨を伝える。
 - 「画像を変えて」と言われたら、前回と別のURLにする。
 - 画像の指定がなければ image は書かない（ランチャーがファイルのアイコンを自動表示する）。

@@ -2,6 +2,7 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Text;
 using ProjectDeck.Core;
 using ProjectDeck.Core.Deck;
+using ProjectDeck.Core.Images;
 using ProjectDeck.Core.Settings;
 using ProjectDeck.Native;
 using ProjectDeck.Rendering;
@@ -36,6 +37,7 @@ internal sealed partial class MainForm : Form
     private AppSettings _settings;
     private readonly LauncherState _state;
     private readonly ShellWorker _shell;
+    private readonly ImageFetcher _images;
     private readonly Dictionary<string, (string Json, Bitmap Bmp)> _renderCache = [];
     private readonly Dictionary<string, Image?> _pictureCache = new(StringComparer.OrdinalIgnoreCase);
     private readonly ToolTip _tip = new() { InitialDelay = 500, ReshowDelay = 100, AutoPopDelay = 15000 };
@@ -64,6 +66,10 @@ internal sealed partial class MainForm : Form
 
         _shell = new ShellWorker(96);
         _shell.Completed += _ => { if (IsHandleCreated && !IsDisposed) BeginInvoke(Invalidate); };
+
+        // image.url の画像（取得が終わったら再描画し、ランプを更新）
+        _images = new ImageFetcher(new ImageCache(AppPaths.ImageCacheDirectory), _settings.Image);
+        _images.Completed += _ => { if (IsHandleCreated && !IsDisposed) BeginInvoke(OnImageCompleted); };
 
         InitDeck();
         InitMenus();
@@ -350,6 +356,12 @@ internal sealed partial class MainForm : Form
     {
         var img = b.Image;
         if (img == null) return null;
+        if (img.Url != null)
+        {
+            var bmp = _images.Get(img.Url, img.Query, img.License);
+            if (bmp == null) UpdateBlink(); // 取得中はランプを黄点滅
+            return bmp;
+        }
         string? key = img.File != null ? "file:" + PathExpander.Expand(img.File, page.Vars)
             : img.Data != null ? "data:" + img.Data.GetHashCode() : null;
         if (key == null) return null;

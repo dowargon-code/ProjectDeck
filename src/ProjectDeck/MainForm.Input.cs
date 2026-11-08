@@ -43,6 +43,8 @@ internal sealed partial class MainForm
         var copyPath = new ToolStripMenuItem("パスをコピー", null, (_, _) => CopyButtonPath());
         _buttonMenu.Items.Add(openLocation);
         _buttonMenu.Items.Add(copyPath);
+        var refetch = new ToolStripMenuItem("画像を再取得", null, (_, _) => RefetchButtonImage());
+        _buttonMenu.Items.Add(refetch);
         _buttonMenu.Items.Add(new ToolStripSeparator());
         _buttonMenu.Items.Add("削除", null, (_, _) => DeleteButton());
         _buttonMenu.Opening += (_, _) =>
@@ -51,6 +53,7 @@ internal sealed partial class MainForm
             openLocation.Enabled = target != null && !target.StartsWith("http", StringComparison.OrdinalIgnoreCase);
             copyPath.Enabled = target != null;
             copyPath.Text = target?.StartsWith("http", StringComparison.OrdinalIgnoreCase) == true ? "URLをコピー" : "パスをコピー";
+            refetch.Visible = _menuButton?.Image?.Url != null;
         };
 
         var trayMenu = new ContextMenuStrip();
@@ -255,6 +258,15 @@ internal sealed partial class MainForm
     private void CopyButtonPath()
     {
         if (ButtonTarget(_menuButton) is { } target) Clipboard.SetText(target);
+    }
+
+    /// <summary>キャッシュを捨てて画像を取り直す</summary>
+    private void RefetchButtonImage()
+    {
+        if (_menuButton?.Image is not { Url: { } url } img) return;
+        _images.Retry(url, img.Query, img.License);
+        UpdateBlink();
+        Invalidate();
     }
 
     private void DeleteButton()
@@ -555,6 +567,7 @@ internal sealed partial class MainForm
         _deckWatcher?.Dispose();
         _settingsWatcher?.Dispose();
         _shell.Dispose();
+        _images.Dispose();
         Logger.Info("終了");
         base.OnFormClosed(e);
     }
