@@ -22,6 +22,7 @@ internal sealed partial class MainForm
     private readonly Timer _settingsDebounce = new();
     private readonly Timer _blinkTimer = new() { Interval = 400 };
     private readonly Timer _doneTimer = new() { Interval = 3000 };
+    private readonly Timer _dialPollTimer = new() { Interval = 2000 }; // アプリ別音量・明るさは通知が無いので定期的に読む
     private bool _blinkOn = true;
     private bool _loading;
     private bool _justDone;
@@ -53,6 +54,8 @@ internal sealed partial class MainForm
         _settingsDebounce.Tick += (_, _) => { _settingsDebounce.Stop(); ReloadSettings(); };
         _blinkTimer.Tick += (_, _) => { _blinkOn = !_blinkOn; Invalidate(LampRect); };
         _doneTimer.Tick += (_, _) => { _doneTimer.Stop(); _justDone = false; Invalidate(LampRect); };
+        _dialPollTimer.Tick += (_, _) => { if (Visible && DialVisible && _dials.NeedsPolling) _dials.RefreshPolled(); };
+        _dialPollTimer.Start();
     }
 
     // ================= 監視 =================
@@ -237,6 +240,7 @@ internal sealed partial class MainForm
         foreach (var img in _pictureCache.Values) img?.Dispose();
         _pictureCache.Clear();
         _shell.RecheckAll();
+        _dials.Rebuild(newDeck.Dials);
         // 今表示していないページの画像も先に取りにいく
         _images.Prefetch(newDeck.Pages.SelectMany(p => p.Buttons)
             .Where(btn => btn.Image?.Url != null)

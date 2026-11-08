@@ -38,6 +38,7 @@ internal sealed partial class MainForm : Form
     private readonly LauncherState _state;
     private readonly ShellWorker _shell;
     private readonly ImageFetcher _images;
+    private readonly DialManager _dials;
     private readonly Dictionary<string, (string Json, Bitmap Bmp)> _renderCache = [];
     private readonly Dictionary<string, Image?> _pictureCache = new(StringComparer.OrdinalIgnoreCase);
     private readonly ToolTip _tip = new() { InitialDelay = 500, ReshowDelay = 100, AutoPopDelay = 15000 };
@@ -71,7 +72,12 @@ internal sealed partial class MainForm : Form
         _images = new ImageFetcher(new ImageCache(AppPaths.ImageCacheDirectory), _settings.Image);
         _images.Completed += _ => { if (IsHandleCreated && !IsDisposed) BeginInvoke(OnImageCompleted); };
 
+        // ダイヤル（音量・マイク・明るさ）。値が変わったらダイヤル部だけ描き直す
+        _dials = new DialManager();
+        _dials.Changed += () => { if (IsHandleCreated && !IsDisposed) BeginInvoke(InvalidateDials); };
+
         InitDeck();
+        _dials.Rebuild(_deck?.Dials ?? []);
         InitMenus();
         InitTimers();
         ApplyWindowSettings();
@@ -328,38 +334,108 @@ internal sealed partial class MainForm : Form
         }
     }
 
+    /// <summary>ダイヤル部（最大4個）。ホイール・クリックの当たり判定用に位置を覚えておく</summary>
+    private readonly List<(Rectangle Rect, int Index)> _dialRects = [];
+
     private void DrawDials(Graphics g)
     {
+        _dialRects.Clear();
         var area = new Rectangle(Pad, GridBottom + Pad, ClientSize.Width - Pad * 2, DialH);
         using (var path = DeckButtonRenderer.RoundedRect(area, Px(6)))
         using (var brush = new SolidBrush(DialBack))
             g.FillPath(brush, path);
 
-        using var font = new Font("Meiryo UI", 9 * S, GraphicsUnit.Pixel);
-        var dials = _deck?.Dials.OrderBy(d => d.Index).Take(4).ToList() ?? [];
+        using var labelFont = new Font("Meiryo UI", 11 * S, GraphicsUnit.Pixel);
+        using var valueFont = new Font("Meiryo UI", 12 * S, FontStyle.Bold, GraphicsUnit.Pixel);
+        var dials = _dials.Dials;
         if (dials.Count == 0)
         {
-            TextRenderer.DrawText(g, "ダイヤル未設定（deck.json の dials）", font, area, IconOff,
+            TextRenderer.DrawText(g, "ダイヤル未設定（deck.json の dials）", labelFont, area, IconOff,
                 TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
             return;
         }
 
-        // フェーズ3で音量・明るさの値を表示する。今は割付の表示のみ
         var slot = area.Width / Math.Max(3, dials.Count);
         for (var i = 0; i < dials.Count; i++)
         {
-            var cx = area.X + slot * i + Px(22);
-            var cy = area.Y + area.Height / 2;
+            var (def, ctl) = dials[i];
+            var cell = new Rectangle(area.X + slot * i, area.Y, slot, area.Height);
+            _dialRects.Add((cell, i));
+
+            var accent = DialColor(def.Function);
+            var value = ctl.Value;
+            var off = ctl.Unavailable != null || ctl.Muted;
+            var cx = cell.X + Px(20);
+            var cy = cell.Y + cell.Height / 2;
             var r = Px(12);
+
+            // つまみ
             using (var knob = new LinearGradientBrush(new Rectangle(cx - r, cy - r, r * 2, r * 2),
                        Color.FromArgb(0x6a, 0x70, 0x7b), Color.FromArgb(0x2a, 0x2d, 0x33), 60f))
                 g.FillEllipse(knob, cx - r, cy - r, r * 2, r * 2);
-            using (var pen = new Pen(Color.FromArgb(0x6b, 0x72, 0x7d)))
-                g.DrawEllipse(pen, cx - r, cy - r, r * 2, r * 2);
-            TextRenderer.DrawText(g, dials[i].Label, font, new Point(cx + r + Px(6), cy - Px(12)), Color.FromArgb(0xc8, 0xcd, 0xd5));
-            TextRenderer.DrawText(g, "--%", font, new Point(cx + r + Px(6), cy + Px(1)), IconOff);
+
+            // 外周の目盛り（左下 -135° ～ 右下 +135°）と、今の値までの弧
+            var ring = new RectangleF(cx - r - Px(3), cy - r - Px(3), (r + Px(3)) * 2, (r + Px(3)) * 2);
+            using (var track = new Pen(Color.FromArgb(0x3a, 0x3f, 0x48), 2.4f * S))
+                g.DrawArc(track, ring, 135, 270);
+            if (value is { } v && v > 0)
+            {
+                using var arc = new Pen(off ? IconOff : accent, 2.4f * S) { StartCap = LineCap.Round, EndCap = LineCap.Round };
+                g.DrawArc(arc, ring, 135, 270f * v / 100f);
+            }
+
+            // つまみの指針
+            if (value is { } pv)
+            {
+                var angle = (135 + 270.0 * pv / 100) * Math.PI / 180;
+                using var needle = new Pen(off ? IconOff : accent, 2.4f * S) { StartCap = LineCap.Round, EndCap = LineCap.Round };
+                g.DrawLine(needle, cx, cy, cx + (float)Math.Cos(angle) * (r - Px(3)), cy + (float)Math.Sin(angle) * (r - Px(3)));
+            }
+
+            // 名前と値
+            var tx = cx + r + Px(8);
+            var label = def.Label.Length > 0 ? def.Label : DefaultDialLabel(def.Function);
+            TextRenderer.DrawText(g, label, labelFont, new Rectangle(tx, cy - Px(16), cell.Right - tx, Px(15)),
+                Color.FromArgb(0xc8, 0xcd, 0xd5), TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);
+            var (text, color) = ctl.Unavailable != null ? ("--", IconOff)
+                : ctl.Muted ? ("ミュート", Color.FromArgb(0xe5, 0x53, 0x4b))
+                : ($"{value}%", accent);
+            TextRenderer.DrawText(g, text, valueFont, new Rectangle(tx, cy, cell.Right - tx, Px(16)),
+                color, TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);
         }
     }
+
+    /// <summary>ダイヤル部だけ描き直す</summary>
+    private void InvalidateDials()
+    {
+        if (DialVisible) Invalidate(new Rectangle(0, GridBottom, ClientSize.Width, ClientSize.Height - GridBottom));
+    }
+
+    /// <summary>位置にあるダイヤル。無ければ null</summary>
+    private (DeckDial Def, IDialControl Control)? DialAt(Point p)
+    {
+        if (!DialVisible) return null;
+        foreach (var (rect, i) in _dialRects)
+            if (rect.Contains(p) && i < _dials.Dials.Count) return _dials.Dials[i];
+        return null;
+    }
+
+    private static Color DialColor(string function) => function switch
+    {
+        "brightness" => Color.FromArgb(0xe3, 0xb3, 0x41),
+        "mic_volume" => Color.FromArgb(0x57, 0xab, 0x5a),
+        "app_volume" => Color.FromArgb(0xb4, 0x8e, 0xad),
+        _ => Color.FromArgb(0x7a, 0xb7, 0xff),
+    };
+
+    private static string DefaultDialLabel(string function) => function switch
+    {
+        "master_volume" => "音量",
+        "mic_volume" => "マイク",
+        "brightness" => "明るさ",
+        "app_volume" => "アプリ音量",
+        _ => "（なし）",
+    };
 
     // ================= ボタン画像 =================
 

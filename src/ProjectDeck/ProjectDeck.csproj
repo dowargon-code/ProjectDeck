@@ -31,4 +31,9 @@
     <ProjectReference Include="..\ProjectDeck.Core\ProjectDeck.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="NAudio.Wasapi" Version="3.3.0" />
+    <PackageReference Include="System.Management" Version="10.0.14" />
+  </ItemGroup>
+
 </Project>
