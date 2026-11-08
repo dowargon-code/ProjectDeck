@@ -237,6 +237,11 @@ internal sealed partial class MainForm
         foreach (var img in _pictureCache.Values) img?.Dispose();
         _pictureCache.Clear();
         _shell.RecheckAll();
+        // 今表示していないページの画像も先に取りにいく
+        _images.Prefetch(newDeck.Pages.SelectMany(p => p.Buttons)
+            .Where(btn => btn.Image?.Url != null)
+            .Select(btn => (btn.Image!.Url!, btn.Image.Query, btn.Image.License)));
+        UpdateBlink();
 
         if (CurrentPage == null)
         {
@@ -375,6 +380,7 @@ internal sealed partial class MainForm
         _settingsWarnings.AddRange(warnings);
 
         if (old.Layout != s.Layout || old.Label != s.Label) ClearRenderCache();
+        if (old.Image != s.Image) _images.UpdateSettings(s.Image);
         if (old.Hotkey != s.Hotkey) RegisterHotkeys();
         if (old.Startup.AutoStart != s.Startup.AutoStart) SyncAutoStart();
         _deckDebounce.Interval = s.Interface.DebounceMs;
@@ -422,8 +428,9 @@ internal sealed partial class MainForm
         get
         {
             if (_deckErrors.Count > 0 || _settingsErrors.Count > 0) return LampState.Error;
-            if (_loading) return LampState.Loading;
-            if (_deckWarnings.Count + _settingsWarnings.Count + _miscWarnings.Count + _imageWarnings.Count > 0) return LampState.Warning;
+            if (_loading || _images.Pending > 0) return LampState.Loading;
+            if (_deckWarnings.Count + _settingsWarnings.Count + _miscWarnings.Count + _imageWarnings.Count > 0
+                || UrlImageWarnings().Count > 0) return LampState.Warning;
             return _justDone ? LampState.Done : LampState.Idle;
         }
     }
@@ -440,16 +447,44 @@ internal sealed partial class MainForm
     private void SetLoading(bool loading)
     {
         _loading = loading;
-        if (loading)
+        UpdateBlink();
+    }
+
+    /// <summary>読込中（deck.json・settings.toml・画像）の間だけランプを点滅させる</summary>
+    private void UpdateBlink()
+    {
+        if (_loading || _images.Pending > 0)
         {
-            _blinkOn = true;
-            _blinkTimer.Start();
+            if (!_blinkTimer.Enabled)
+            {
+                _blinkOn = true;
+                _blinkTimer.Start();
+            }
         }
         else
         {
             _blinkTimer.Stop();
         }
         Invalidate(LampRect);
+    }
+
+    /// <summary>画像の取得が1件終わった</summary>
+    private void OnImageCompleted()
+    {
+        UpdateBlink();
+        Invalidate();
+    }
+
+    /// <summary>今の deck.json で使っている image.url のうち、取得できなかったもの</summary>
+    private List<string> UrlImageWarnings()
+    {
+        var list = new List<string>();
+        if (_deck == null) return list;
+        foreach (var p in _deck.Pages.Where(p => !p.Archived))
+            foreach (var b in p.Buttons)
+                if (b.Image?.Url is { } url && _images.FailureOf(url) is { } error)
+                    list.Add($"{p.Name}「{b.Label}」（{b.Id}）: 画像を取得できません（{error}）\n　{url}\n　→ ボタンを右クリック「画像を再取得」");
+        return list;
     }
 
     private void FlashDone()
@@ -480,7 +515,7 @@ internal sealed partial class MainForm
         Add($"settings.toml のエラー（反映していません）\n{_settingsStore.SettingsPath}", _settingsErrors);
         Add("deck.json の警告", _deckWarnings);
         Add("settings.toml の警告", _settingsWarnings);
-        Add("画像", _imageWarnings);
+        Add("画像", [.. _imageWarnings, .. UrlImageWarnings()]);
         Add("その他", _miscWarnings);
         if (parts.Count == 0)
         {

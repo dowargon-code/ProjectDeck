@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json.Nodes;
 using ProjectDeck.Core;
 using ProjectDeck.Core.Deck;
+using ProjectDeck.Core.Images;
 using ProjectDeck.Core.Settings;
 
 // deckctl：Grok のローカル実行（PowerShell）から deck.json を安全に取得・更新するコマンド（仕様書 6.3）。
@@ -67,7 +68,7 @@ internal static class DeckCtl
                 if (opts.Positional.Count < 1) return Error(1, "URL を指定してください（deckctl check-image <URL>）");
                 using (var client = ImageProbe.CreateClient(s.Image.Proxy, s.Image.DownloadTimeoutSec))
                 {
-                    var r = await ImageProbe.CheckAsync(client, opts.Positional[0], s.Image.MaxSizeMb * 1024L * 1024L);
+                    var r = await ImageProbe.FetchAsync(client, opts.Positional[0], s.Image.MaxSizeMb * 1024L * 1024L);
                     Write(r.ToJson());
                     return r.Ok ? 0 : 1;
                 }
@@ -161,7 +162,7 @@ internal static class DeckCtl
                 using var client = ImageProbe.CreateClient(s.Image.Proxy, s.Image.DownloadTimeoutSec);
                 foreach (var url in newUrls)
                 {
-                    var r = await ImageProbe.CheckAsync(client, url, s.Image.MaxSizeMb * 1024L * 1024L);
+                    var r = await ImageProbe.FetchAsync(client, url, s.Image.MaxSizeMb * 1024L * 1024L);
                     if (!r.Ok) warnings.Add($"画像を取得できません（{r.Error}）: {url}");
                 }
             }

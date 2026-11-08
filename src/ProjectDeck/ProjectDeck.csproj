@@ -4,10 +4,28 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
+    <!-- WebP など GDI+ で読めない画像を Windows の画像コーデック（WIC）で読むため -->
+    <UseWPF>true</UseWPF>
     <!-- モニタごとの DPI に合わせて描画する -->
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- UseWPF を入れると暗黙の using が WPF 向けに変わるため、WinForms 向けのまま固定する
+         （WPF の型は画像の読込（ImageDecoder）でだけ完全名で使う） -->
+    <Using Include="System.IO" />
+    <Using Include="System.Net.Http" />
+    <Using Remove="System.Windows" />
+    <Using Remove="System.Windows.Controls" />
+    <Using Remove="System.Windows.Data" />
+    <Using Remove="System.Windows.Documents" />
+    <Using Remove="System.Windows.Input" />
+    <Using Remove="System.Windows.Media" />
+    <Using Remove="System.Windows.Media.Imaging" />
+    <Using Remove="System.Windows.Navigation" />
+    <Using Remove="System.Windows.Shapes" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\ProjectDeck.Core\ProjectDeck.Core.csproj" />

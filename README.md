@@ -37,7 +37,7 @@ ProjectDeck/
 | フェーズ | 内容 | 状況 |
 |---|---|---|
 | 1 | 画面・ページ・アクション実行、deck.json / settings.toml の監視・検証・履歴、ランプ、📌、◎、⚙設定ダイアログ、常駐・ホットキー（表示/非表示）、D&D登録、自動実行、deckctl | 実装済み |
-| 2 | 画像URLの取得・キャッシュ（今は url 指定のボタンは関連付けアイコン／文字アイコンで表示） | 未着手 |
+| 2 | 画像URLの取得・加工（256×256）・キャッシュ（`cache\images\`）、取得失敗時の代替アイコン、右クリック「画像を再取得」、WebP 対応 | 実装済み |
 | 3 | ダイヤル（音量・マイク・明るさ）。今は割付の表示のみ | 未着手 |
 
 ## deckctl の使い方
@@ -49,7 +49,7 @@ deckctl apply <パッチ> --dry-run     # 書き込まずに結果だけ確認
 deckctl apply <パッチ> [--force]     # 適用（5個以上減る変更は --force が必要）
 deckctl validate                     # 現在の deck.json を検証
 deckctl undo                         # 1つ前の履歴に戻す
-deckctl check-image <URL>            # 画像として取得できるか確認
+deckctl check-image <URL>            # 画像として使えるか確認（形式・大きさ・短辺64px以上）
 ```
 
 出力はすべて JSON、終了コードは 0：成功／1：検証エラー（deck.json 変更なし）／2：ファイル競合・読み書き失敗。
