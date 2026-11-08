@@ -62,7 +62,7 @@ internal sealed partial class SettingsForm : Form
     private readonly NumericUpDown _maxSize = Num(SettingsLimits.MaxSizeMb);
     private readonly TextBox _proxy = new() { Width = 220 };
 
-    private readonly Button _ok = new() { Text = "OK", DialogResult = DialogResult.None, Width = 80 };
+    private readonly Button _ok = new() { Text = "OK", DialogResult = DialogResult.None, AutoSize = true, MinimumSize = new Size(80, 0) };
     private readonly Label _status = new() { AutoSize = true, ForeColor = Color.Firebrick };
 
     private static readonly Color Invalid = Color.FromArgb(255, 220, 220);
@@ -74,17 +74,23 @@ internal sealed partial class SettingsForm : Form
         _settingsPath = settingsPath;
         _openText = openText;
 
+        // 寸法はすべて 96dpi（100%）基準で書き、表示倍率（125%・150% など）に合わせて WinForms に拡大させる。
+        // デザイナーが生成するコードと同じく、レイアウトを止めた状態で基準DPIを設定してから部品を並べる
+        SuspendLayout();
+        AutoScaleDimensions = new SizeF(96F, 96F);
+        AutoScaleMode = AutoScaleMode.Dpi;
         Text = "ProjectDeck 設定";
         Font = new Font("Meiryo UI", 9f);
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = MinimizeBox = false;
         ShowInTaskbar = false;
         StartPosition = FormStartPosition.CenterScreen;
-        AutoScaleMode = AutoScaleMode.Dpi;
-        ClientSize = new Size(560, 420);
+        ClientSize = new Size(600, 460);
         Icon = AppIcon.Create(32);
 
         BuildUi();
+        ResumeLayout(false);
+        PerformLayout();
         LoadFrom(settings);
     }
 
@@ -92,7 +98,7 @@ internal sealed partial class SettingsForm : Form
 
     private void BuildUi()
     {
-        var tabs = new TabControl { Dock = DockStyle.Fill };
+        var tabs = new TabControl { Dock = DockStyle.Fill, Padding = new Point(10, 4) };
 
         // レイアウト
         var layout = Page(tabs, "レイアウト");
@@ -101,7 +107,7 @@ internal sealed partial class SettingsForm : Form
         Row(layout, "ボタンサイズ", _buttonSize, "px");
         Row(layout, "間隔", _gap, "px");
         Row(layout, "角丸", _radius, "px");
-        _preview.Size = new Size(260, 150);
+        _preview.Size = _preview.MinimumSize = new Size(260, 150);
         Row(layout, "プレビュー", _preview);
 
         // ウィンドウ
@@ -167,11 +173,13 @@ internal sealed partial class SettingsForm : Form
         {
             Dock = DockStyle.Bottom,
             FlowDirection = FlowDirection.RightToLeft,
-            Height = 44,
-            Padding = new Padding(6, 8, 6, 6),
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            WrapContents = false,
+            Padding = new Padding(6, 6, 6, 8),
         };
-        var cancel = new Button { Text = "キャンセル", DialogResult = DialogResult.Cancel, Width = 90 };
-        var reset = new Button { Text = "既定値に戻す", Width = 110 };
+        var cancel = new Button { Text = "キャンセル", DialogResult = DialogResult.Cancel, AutoSize = true, MinimumSize = new Size(80, 0) };
+        var reset = new Button { Text = "既定値に戻す", AutoSize = true };
         var open = new Button { Text = "settings.toml を開く", AutoSize = true };
         reset.Click += (_, _) => LoadFrom(SettingsStore.Parse(SettingsStore.DefaultText()).Settings!);
         open.Click += (_, _) => _openText(_settingsPath);
@@ -208,23 +216,23 @@ internal sealed partial class SettingsForm : Form
     {
         var row = table.RowCount++;
         table.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        table.Controls.Add(new Label { Text = caption, AutoSize = true, Anchor = AnchorStyles.Left, Margin = new Padding(3, 7, 3, 3) }, 0, row);
-        if (suffix == null)
-        {
-            control.Margin = new Padding(3, 4, 3, 4);
-            table.Controls.Add(control, 1, row);
-            return;
-        }
+        table.Controls.Add(new Label { Text = caption, AutoSize = true, Anchor = AnchorStyles.Left | AnchorStyles.Top, Margin = new Padding(3, 7, 3, 3) }, 0, row);
+        // 部品を表のセルに直接置くと幅が縮められるため、必ず FlowLayoutPanel に入れて元の幅を保つ
         var flow = new FlowLayoutPanel { AutoSize = true, WrapContents = false, Margin = Padding.Empty };
         control.Margin = new Padding(3, 4, 3, 4);
+        // 高DPIでの自動拡大のときに幅が縮められることがあるため、指定した幅を最小幅として固定する
+        if (!control.AutoSize) control.MinimumSize = new Size(control.Width, 0);
         flow.Controls.Add(control);
-        flow.Controls.Add(suffix as Control ?? new Label
+        if (suffix != null)
         {
-            Text = suffix.ToString(),
-            AutoSize = true,
-            ForeColor = SystemColors.GrayText,
-            Margin = new Padding(3, 7, 3, 3),
-        });
+            flow.Controls.Add(suffix as Control ?? new Label
+            {
+                Text = suffix.ToString(),
+                AutoSize = true,
+                ForeColor = SystemColors.GrayText,
+                Margin = new Padding(3, 7, 3, 3),
+            });
+        }
         table.Controls.Add(flow, 1, row);
     }
 
@@ -340,7 +348,7 @@ internal sealed partial class SettingsForm : Form
     private void OnValueChanged()
     {
         if (_loading) return;
-        _preview.Update((int)_rows.Value, (int)_cols.Value, (int)_buttonSize.Value, (int)_gap.Value, (int)_radius.Value);
+        _preview.SetLayout((int)_rows.Value, (int)_cols.Value, (int)_buttonSize.Value, (int)_gap.Value, (int)_radius.Value);
         _labelColorHex.Enabled = _labelColor.SelectedIndex == 3;
 
         var errors = new List<string>();
@@ -418,7 +426,7 @@ internal sealed partial class SettingsForm : Form
             BackColor = Color.FromArgb(0x1b, 0x1d, 0x22);
         }
 
-        public void Update(int rows, int cols, int size, int gap, int radius)
+        public void SetLayout(int rows, int cols, int size, int gap, int radius)
         {
             (_rows, _cols, _size, _gap, _radius) = (rows, cols, size, gap, radius);
             Invalidate();
@@ -431,8 +439,10 @@ internal sealed partial class SettingsForm : Form
             const int pad = 4;
             float w = pad * 2 + _cols * _size + (_cols - 1) * _gap;
             float h = 26 + pad * 2 + _rows * _size + (_rows - 1) * _gap;
-            var scale = Math.Min(1f, Math.Min((Width - 8) / w, (Height - 8) / h));
-            g.TranslateTransform((Width - w * scale) / 2, (Height - h * scale) / 2);
+            // 下の 1 行は大きさの表示に使う
+            var textH = Font.Height + 4;
+            var scale = Math.Min(1f, Math.Min((Width - 8) / w, (Height - 8 - textH) / h));
+            g.TranslateTransform((Width - w * scale) / 2, (Height - textH - h * scale) / 2);
             g.ScaleTransform(scale, scale);
             using (var border = new Pen(Color.FromArgb(0x3a, 0x3f, 0x48)))
                 g.DrawRectangle(border, 0, 0, w, h);
@@ -446,7 +456,7 @@ internal sealed partial class SettingsForm : Form
                     g.FillPath(fill, path);
                 }
             g.ResetTransform();
-            TextRenderer.DrawText(g, $"{(int)w} × {(int)h} px", Font, new Point(4, Height - 18), Color.FromArgb(0xb8, 0xbe, 0xc8));
+            TextRenderer.DrawText(g, $"{(int)w} × {(int)h} px（100% 表示のとき）", Font, new Point(4, Height - textH), Color.FromArgb(0xb8, 0xbe, 0xc8));
         }
     }
 }
