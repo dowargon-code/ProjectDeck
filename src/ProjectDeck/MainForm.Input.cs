@@ -15,6 +15,7 @@ internal sealed partial class MainForm
     private (int Row, int Col)? _pressed;
     private (int Row, int Col)? _hover;
     private (int Row, int Col)? _dropTarget;
+    private int _wheelRemainder;
     private string? _tipText;
     private bool _exiting;
     private SettingsForm? _settingsForm;
@@ -107,8 +108,8 @@ internal sealed partial class MainForm
             return;
         }
 
-        // ツールバーの空き部分・余白のドラッグでウィンドウを移動
-        if (e.Y < ToolbarH || cell == null)
+        // ツールバーの空き部分・余白のドラッグでウィンドウを移動（ダイヤルの上は除く）
+        if ((e.Y < ToolbarH || cell == null) && DialAt(e.Location) == null)
         {
             NativeMethods.ReleaseCapture();
             NativeMethods.SendMessageW(Handle, NativeMethods.WM_NCLBUTTONDOWN, NativeMethods.HTCAPTION, IntPtr.Zero);
@@ -119,6 +120,13 @@ internal sealed partial class MainForm
     {
         base.OnMouseUp(e);
         var cell = CellAt(e.Location);
+        if (e.Button == MouseButtons.Left && _pressed == null && DialAt(e.Location) is { } dial)
+        {
+            // ダイヤルのクリック：ミュート切替（明るさは無効）
+            if (dial.Control.CanMute) dial.Control.ToggleMute();
+            InvalidateDials();
+            return;
+        }
         if (e.Button == MouseButtons.Left && _pressed != null)
         {
             var pressed = _pressed.Value;
@@ -159,6 +167,8 @@ internal sealed partial class MainForm
         string? tip = null;
         if (hover is { } h && CurrentPage is { } page && page.ButtonAt(h.Row, h.Col) is { } b)
             tip = $"{b.Label}\n{ActionRunner.Describe(b.Action, page.Vars)}";
+        else if (DialAt(e.Location) is { } d)
+            tip = DialTip(d.Def, d.Control);
         else if (LampRect.Contains(e.Location)) tip = LampMessage();
         else if (PinRect.Contains(e.Location)) tip = TopMost ? "最前面：ON" : "最前面：OFF";
         else if (DialToggleRect.Contains(e.Location)) tip = DialVisible ? "ダイヤルを隠す" : "ダイヤルを表示";
@@ -187,7 +197,24 @@ internal sealed partial class MainForm
     {
         base.OnMouseWheel(e);
         // タブの上（ツールバー左側）でホイール → ページ切替
-        if (e.Y < ToolbarH && e.X < TabsRight) StepPage(e.Delta > 0 ? -1 : 1);
+        if (e.Y < ToolbarH && e.X < TabsRight)
+        {
+            StepPage(e.Delta > 0 ? -1 : 1);
+            return;
+        }
+
+        // ダイヤルの上でホイール → 1ノッチ＝step%（Shift を押しながらなら 1%）
+        if (DialAt(e.Location) is { } dial)
+        {
+            _wheelRemainder += e.Delta;
+            var notches = _wheelRemainder / SystemInformation.MouseWheelScrollDelta; // 細かく回るホイールは貯めてから
+            if (notches == 0) return;
+            _wheelRemainder -= notches * SystemInformation.MouseWheelScrollDelta;
+            var step = ModifierKeys.HasFlag(Keys.Shift) ? 1 : dial.Def.Step;
+            dial.Control.Change(notches * step);
+            InvalidateDials();
+            _tipText = null; // ツールチップの値も更新
+        }
     }
 
     protected override void OnKeyDown(KeyEventArgs e)
@@ -258,6 +285,15 @@ internal sealed partial class MainForm
     private void CopyButtonPath()
     {
         if (ButtonTarget(_menuButton) is { } target) Clipboard.SetText(target);
+    }
+
+    private static string DialTip(DeckDial def, IDialControl c)
+    {
+        var name = def.Label.Length > 0 ? def.Label : def.Function;
+        if (c.Unavailable != null) return $"{name}：{c.Unavailable}";
+        var state = c.Muted ? "ミュート中" : $"{c.Value}%";
+        var how = $"ホイールで {def.Step}% ずつ、Shift+ホイールで 1% ずつ" + (c.CanMute ? "、クリックでミュート切替" : "");
+        return $"{name}：{state}\n{how}";
     }
 
     /// <summary>キャッシュを捨てて画像を取り直す</summary>
@@ -570,6 +606,7 @@ internal sealed partial class MainForm
         _settingsWatcher?.Dispose();
         _shell.Dispose();
         _images.Dispose();
+        _dials.Dispose();
         Logger.Info("終了");
         base.OnFormClosed(e);
     }

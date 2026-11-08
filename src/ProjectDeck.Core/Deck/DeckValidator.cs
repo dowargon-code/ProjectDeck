@@ -82,7 +82,10 @@ public static partial class DeckValidator
             for (var i = 0; i < dialArray.Count; i++)
             {
                 var dial = ValidateDial(dialArray[i], $"dials[{i}]", r);
-                if (dial != null) dials.Add(dial);
+                if (dial == null) continue;
+                if (dials.Any(d => d.Index == dial.Index))
+                    r.Errors.Add($"dials[{i}].index {dial.Index}: 番号が重複しています");
+                dials.Add(dial);
             }
         }
         else if (root.ContainsKey("dials") && root["dials"] != null)
@@ -316,7 +319,10 @@ public static partial class DeckValidator
         if (function != null && !DialFunctions.All.Contains(function))
             r.Errors.Add($"{path}.function \"{function}\": 使える機能は {string.Join(" / ", DialFunctions.All)} です");
         var step = Int(obj, "step", path, r) ?? 2;
+        if (step is < 1 or > 100) r.Errors.Add($"{path}.step: 1～100 で指定してください（1ノッチで変える %）");
         var process = Str(obj, "process", path, r);
+        if (function == "app_volume" && string.IsNullOrWhiteSpace(process))
+            r.Errors.Add($"{path}: app_volume には process（アプリのプロセス名。例：\"spotify\"）が必要です");
         if (r.Errors.Count != errorCount || index == null || function == null) return null;
         return new DeckDial((int)index, label, function, (int)step, process);
     }

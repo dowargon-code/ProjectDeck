@@ -91,4 +91,21 @@ public class DeckValidatorTests
         Assert.Contains(r.Warnings, w => w.Contains("${base}"));
         Assert.Single(DeckValidator.GridWarnings(r.Deck!, 3, 5));
     }
+
+    [Fact]
+    public void ダイヤルの検証()
+    {
+        static ValidationResult V(string dials) => DeckValidator.Validate(
+            "{\"schema\":\"projectdeck/1\",\"revision\":1,\"pages\":[],\"dials\":" + dials + "}");
+
+        var ok = V("""[{"index":1,"label":"音量","function":"master_volume","step":2},{"index":2,"label":"Spotify","function":"app_volume","process":"spotify"}]""");
+        Assert.True(ok.Ok, string.Join("\n", ok.Errors));
+        Assert.Equal("spotify", ok.Deck!.Dials[1].Process);
+
+        Assert.Contains(V("""[{"index":1,"function":"app_volume"}]""").Errors, e => e.Contains("process"));
+        Assert.Contains(V("""[{"index":1,"function":"master_volume","step":0}]""").Errors, e => e.Contains("step"));
+        Assert.Contains(V("""[{"index":5,"function":"master_volume"}]""").Errors, e => e.Contains("1～4"));
+        Assert.Contains(V("""[{"index":1,"function":"master_volume"},{"index":1,"function":"mic_volume"}]""").Errors, e => e.Contains("重複"));
+        Assert.Contains(V("""[{"index":1,"function":"bass"}]""").Errors, e => e.Contains("bass"));
+    }
 }
