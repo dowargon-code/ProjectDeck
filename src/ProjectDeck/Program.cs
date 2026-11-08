@@ -1,4 +1,5 @@
 using ProjectDeck.Core;
+using ProjectDeck.Core.Deck;
 using ProjectDeck.Core.Settings;
 using ProjectDeck.Services;
 
@@ -6,8 +7,17 @@ namespace ProjectDeck;
 
 static class Program
 {
-    private const string MutexName = @"Local\ProjectDeck.SingleInstance";
-    private const string ShowEventName = @"Local\ProjectDeck.Show";
+    /// <summary>
+    /// 二重起動の判定に使う名前。データフォルダごとに分ける
+    /// （動作確認用の PROJECTDECK_HOME で動かすときに、普段使いのランチャーと同時に起動できるように）
+    /// </summary>
+    private static string InstanceKey =>
+        Environment.GetEnvironmentVariable("PROJECTDECK_HOME") is { Length: > 0 }
+            ? "." + DeckStore.Hash(Path.GetFullPath(AppPaths.DataDirectory).ToLowerInvariant())[..12]
+            : "";
+
+    private static string MutexName => @"Local\ProjectDeck.SingleInstance" + InstanceKey;
+    private static string ShowEventName => @"Local\ProjectDeck.Show" + InstanceKey;
 
     /// <summary>ランチャー本体の入口</summary>
     [STAThread]

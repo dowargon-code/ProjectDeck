@@ -57,7 +57,7 @@ deckctl check-image <URL>            # 画像として取得できるか確認
 
 ## 動作確認用のデータフォルダ
 
-環境変数 `PROJECTDECK_HOME` を設定すると、`%USERPROFILE%\ProjectDeck\` の代わりにそのフォルダを使います（本体・deckctl とも）。普段のデータに触れずに試すときに使います。このときは PC起動時の自動実行の登録（レジストリ）にも触れません。
+環境変数 `PROJECTDECK_HOME` を設定すると、`%USERPROFILE%\ProjectDeck\` の代わりにそのフォルダを使います（本体・deckctl とも）。普段のデータに触れずに試すときに使います。このときは PC起動時の自動実行の登録（レジストリ）に触れず、普段使いのランチャーと同時に起動できます。
 
 ```powershell
 $env:PROJECTDECK_HOME = "D:\tmp\pdtest"; .\dist\ProjectDeck\ProjectDeck.exe
