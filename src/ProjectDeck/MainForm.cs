@@ -84,6 +84,7 @@ internal sealed partial class MainForm : Form
         UpdateLayoutSize();
         ApplyPosition();
         SyncAutoStart();
+        SyncDeckctl();
     }
 
     // ================= 寸法 =================

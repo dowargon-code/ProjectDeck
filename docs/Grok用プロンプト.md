@@ -1,6 +1,6 @@
 # ProjectDeck ― Grok Bot用プロンプト（別紙）
 
-ProjectDeck 仕様書 v0.9 の別紙です。
+ProjectDeck 仕様書 v0.10 の別紙です。
 
 1. Grok Botの確認結果（2026-11-07）
 2. スキル本文（ルートA：ローカル実行＋deckctl）… **Grokのスキルに登録するもの**
@@ -38,7 +38,7 @@ ProjectDeck 仕様書 v0.9 の別紙です。
 
 ## 2. スキル本文（ルートA：ローカル実行＋deckctl）
 
-Grokのスキルに、下の枠内をそのまま登録します。パスは実際の配置に合わせて書き換えてください。
+Grokのスキルに、下の枠内をそのまま登録します。パスはランチャーが用意する固定の場所なので、書き換える必要はありません（仕様書 6.3）。
 
 ````text
 # スキル名
@@ -53,9 +53,10 @@ ProjectDeck ボタン編集
 - deck.json の読み書きは、必ず付属コマンド deckctl を使う。deck.json を直接書き換えてはいけない（deckctl が使えない場合だけ、私に確認してから）。
 
 # 場所
-# 場所
-- deckctl : E:\claude\ProjectDeck\dist\ProjectDeck\deckctl.exe
-- パッチの置き場所 : C:\Users\Takahiro\ProjectDeck\inbox\
+- deckctl : %USERPROFILE%\ProjectDeck\deckctl\deckctl.exe
+  PowerShell では & "$env:USERPROFILE\ProjectDeck\deckctl\deckctl.exe" get のように実行する。
+  ランチャーが起動のたびに最新の deckctl をここへコピーするので、ランチャー本体の置き場所が変わってもこのパスは変わらない。
+- パッチの置き場所 : %USERPROFILE%\ProjectDeck\inbox\（PowerShell では "$env:USERPROFILE\ProjectDeck\inbox\"）
 
 # 手順（毎回この順で行う）
 1. 現在の状態を取得する
@@ -138,7 +139,7 @@ ProjectDeck ボタン編集
 
 1. Grok に「ローカル実行を使わず、パッチJSONをチャットに出して」と頼む（スキルの「パッチJSONの形式」と同じもの）
 2. 出てきた JSON を `%USERPROFILE%\ProjectDeck\inbox\patch_yyyyMMdd_HHmmss.json` として UTF-8 で保存する
-3. PowerShell で `deckctl apply <保存したファイル> --dry-run` → 問題なければ `deckctl apply <保存したファイル>`
+3. PowerShell で `& "$env:USERPROFILE\ProjectDeck\deckctl\deckctl.exe" apply <保存したファイル> --dry-run` → 問題なければ `--dry-run` を外して実行
 
 ---
 

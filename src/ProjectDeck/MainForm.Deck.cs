@@ -425,6 +425,14 @@ internal sealed partial class MainForm
         Invalidate(LampRect);
     }
 
+    /// <summary>deckctl を決まった場所（データフォルダ）にコピーする。Grok はそこを呼ぶ</summary>
+    private void SyncDeckctl()
+    {
+        _miscWarnings.RemoveAll(w => w.StartsWith("deckctl を", StringComparison.Ordinal));
+        if (DeckctlCopy.Sync() is { } w) _miscWarnings.Add(w);
+        Invalidate(LampRect);
+    }
+
     // ================= ランプ =================
 
     private LampState Lamp
