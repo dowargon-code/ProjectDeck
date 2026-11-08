@@ -429,6 +429,8 @@ internal sealed partial class MainForm
         }
         ShowLauncher();
         using var form = new SettingsForm(_settings.Clone(), _settingsStore.SettingsPath, OpenText);
+        // ランチャーが最前面（📌 ON）のときは、ダイアログも最前面にしないとランチャーの下に隠れる
+        form.TopMost = TopMost;
         _settingsForm = form;
         try
         {
