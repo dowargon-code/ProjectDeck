@@ -438,7 +438,7 @@ internal sealed partial class SettingsForm : Form
             g.SmoothingMode = SmoothingMode.AntiAlias;
             const int pad = 4;
             float w = pad * 2 + _cols * _size + (_cols - 1) * _gap;
-            float h = 26 + pad * 2 + _rows * _size + (_rows - 1) * _gap;
+            float h = 32 + pad * 2 + _rows * _size + (_rows - 1) * _gap;
             // 下の 1 行は大きさの表示に使う
             var textH = Font.Height + 4;
             var scale = Math.Min(1f, Math.Min((Width - 8) / w, (Height - 8 - textH) / h));
@@ -447,12 +447,12 @@ internal sealed partial class SettingsForm : Form
             using (var border = new Pen(Color.FromArgb(0x3a, 0x3f, 0x48)))
                 g.DrawRectangle(border, 0, 0, w, h);
             using (var tab = new SolidBrush(Color.FromArgb(0x3d, 0x7b, 0xd9)))
-                g.FillRectangle(tab, 6, 5, 66, 16);
+                g.FillRectangle(tab, 6, 5, 66, 22);
             using var fill = new SolidBrush(Color.FromArgb(0x4a, 0x5d, 0x7e));
             for (var r = 0; r < _rows; r++)
                 for (var c = 0; c < _cols; c++)
                 {
-                    using var path = DeckButtonRenderer.RoundedRect(new RectangleF(pad + c * (_size + _gap), 26 + pad + r * (_size + _gap), _size, _size), _radius);
+                    using var path = DeckButtonRenderer.RoundedRect(new RectangleF(pad + c * (_size + _gap), 32 + pad + r * (_size + _gap), _size, _size), _radius);
                     g.FillPath(fill, path);
                 }
             g.ResetTransform();

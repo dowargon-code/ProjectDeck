@@ -86,7 +86,7 @@ internal sealed partial class MainForm : Form
     private int Px(float v) => (int)Math.Round(v * S);
 
     private int Pad => Px(4);
-    private int ToolbarH => Px(26);
+    private int ToolbarH => Px(32);
     private int Bs => Px(_settings.Layout.ButtonSize);
     private int GapPx => Px(_settings.Layout.Gap);
     private int Rows => _settings.Layout.Rows;
@@ -99,12 +99,19 @@ internal sealed partial class MainForm : Form
     private Rectangle CellRect(int row, int col) =>
         new(Pad + (col - 1) * (Bs + GapPx), ToolbarH + Pad + (row - 1) * (Bs + GapPx), Bs, Bs);
 
-    private Rectangle MenuRect => new(ClientSize.Width - Px(20), Px(4), Px(16), Px(18));
-    private Rectangle GearRect => new(ClientSize.Width - Px(40), Px(4), Px(18), Px(18));
-    private Rectangle DialToggleRect => new(ClientSize.Width - Px(60), Px(4), Px(18), Px(18));
-    private Rectangle PinRect => new(ClientSize.Width - Px(80), Px(4), Px(18), Px(18));
-    private Rectangle LampRect => new(ClientSize.Width - Px(98), Px(4), Px(14), Px(18));
-    private int TabsRight => ClientSize.Width - Px(102);
+    // ツールバー右側の部品（右から ≡・⚙・◎・📌・ランプ）。22px 角を 2px 間隔で並べる
+    private const int ToolSize = 22;
+    private Rectangle ToolRect(int indexFromRight) =>
+        new(ClientSize.Width - Px(4) - (indexFromRight + 1) * Px(ToolSize) - indexFromRight * Px(2), Px(5), Px(ToolSize), Px(ToolSize));
+    private Rectangle MenuRect => ToolRect(0);
+    private Rectangle GearRect => ToolRect(1);
+    private Rectangle DialToggleRect => ToolRect(2);
+    private Rectangle PinRect => ToolRect(3);
+    private Rectangle LampRect => new(PinRect.Left - Px(2) - Px(14), Px(5), Px(14), Px(ToolSize)); // ランプは点だけなので幅を詰める
+    private int TabsRight => LampRect.Left - Px(2);
+
+    /// <summary>ツールバーのアイコンの拡大率（元の 18px 角の絵を 22px 角に合わせる）</summary>
+    private float K => S * ToolSize / 18f;
 
     /// <summary>行列数・ボタンサイズ・ダイヤル表示に合わせてウィンドウの大きさを決める</summary>
     private void UpdateLayoutSize()
@@ -151,11 +158,11 @@ internal sealed partial class MainForm : Form
     private void DrawTabs(Graphics g)
     {
         _tabRects.Clear();
-        using var font = new Font("Meiryo UI", 9 * S, GraphicsUnit.Pixel);
+        using var font = new Font("Meiryo UI", 12 * S, GraphicsUnit.Pixel);
         var pages = VisiblePages;
         var x = Px(6);
         var y = Px(5);
-        var h = Px(16);
+        var h = Px(22);
         if (pages.Count == 0)
         {
             TextRenderer.DrawText(g, _deck == null ? "（読込中）" : "（ページなし）", font, new Point(x, y + Px(1)), IconOff);
@@ -163,27 +170,50 @@ internal sealed partial class MainForm : Form
         }
 
         // 幅を計算し、はみ出す場合は選択中のタブが見える位置から並べる
-        var widths = pages.Select(p => Math.Max(Px(42), TextRenderer.MeasureText(p.Name, font).Width + Px(10))).ToList();
-        var gap = Px(4);
+        var widths = pages.Select(p => Math.Max(Px(44), TextRenderer.MeasureText(g, p.Name, font, Size.Empty, TextFormatFlags.NoPadding).Width + Px(14))).ToList();
+        var gap = Px(3);
+        var overflow = x + widths.Sum(w => w + gap) - gap > TabsRight;
+        var marker = overflow ? Px(10) : 0; // 隠れたタブがあることを示す ‹ › の幅
+        var right = TabsRight - marker;
         var current = Math.Max(0, pages.ToList().FindIndex(p => p.Id == _pageId));
+        // 左の ‹ は、左に隠れたタブがあるときだけ場所を取る
+        int Span(int from) => widths.Skip(from).Take(current - from + 1).Sum(w => w + gap) - gap;
         var start = 0;
-        while (start < current && x + widths.Skip(start).Take(current - start + 1).Sum(w => w + gap) > TabsRight) start++;
+        if (x + Span(0) > right)
+        {
+            start = 1;
+            while (start < current && x + marker + Span(start) > right) start++;
+        }
+        var left = start > 0 ? x + marker : x;
 
+        x = left;
+        var last = start - 1;
         for (var i = start; i < pages.Count; i++)
         {
-            if (x + widths[i] > TabsRight) break;
+            if (x + widths[i] > right) break;
+            last = i;
             var rect = new Rectangle(x, y, widths[i], h);
             var active = pages[i].Id == _pageId;
             var color = active
                 ? (DeckButtonRenderer.TryParseColor(pages[i].Color, out var c) ? c : Accent)
                 : TabInactive;
-            using (var path = DeckButtonRenderer.RoundedRect(rect, Px(4)))
+            using (var path = DeckButtonRenderer.RoundedRect(rect, Px(5)))
             using (var brush = new SolidBrush(color))
                 g.FillPath(brush, path);
             TextRenderer.DrawText(g, pages[i].Name, font, rect, active ? Color.White : TabInactiveText,
                 TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);
             _tabRects.Add((rect, pages[i].Id));
             x += widths[i] + gap;
+        }
+
+        // 左右に隠れたタブがあれば ‹ › を出す（タブの上でホイールを回すと切り替わる）
+        if (overflow)
+        {
+            const TextFormatFlags center = TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding;
+            if (start > 0)
+                TextRenderer.DrawText(g, "‹", font, new Rectangle(Px(6), y, marker, h), TabInactiveText, center);
+            if (last < pages.Count - 1)
+                TextRenderer.DrawText(g, "›", font, new Rectangle(right, y, marker, h), TabInactiveText, center);
         }
     }
 
@@ -197,51 +227,51 @@ internal sealed partial class MainForm : Form
         {
             using var glow = new SolidBrush(Color.FromArgb(64, lamp));
             using var dot = new SolidBrush(lamp);
-            g.FillEllipse(glow, center.X - Px(6), center.Y - Px(6), Px(12), Px(12));
-            g.FillEllipse(dot, center.X - 3.6f * S, center.Y - 3.6f * S, 7.2f * S, 7.2f * S);
+            g.FillEllipse(glow, center.X - 7.5f * S, center.Y - 7.5f * S, 15 * S, 15 * S);
+            g.FillEllipse(dot, center.X - 4.5f * S, center.Y - 4.5f * S, 9 * S, 9 * S);
         }
 
         // 最前面（📌）
         DrawToggle(g, PinRect, TopMost, (gg, c, col) =>
         {
             using var b = new SolidBrush(col);
-            gg.FillEllipse(b, c.X - 3.2f * S, c.Y - 6.2f * S, 6.4f * S, 6.4f * S);
-            gg.FillPolygon(b, [new PointF(c.X - 1 * S, c.Y - 3 * S), new PointF(c.X + 1 * S, c.Y - 3 * S),
-                new PointF(c.X + 0.6f * S, c.Y + 4 * S), new PointF(c.X - 0.6f * S, c.Y + 4 * S)]);
+            gg.FillEllipse(b, c.X - 3.2f * K, c.Y - 6.2f * K, 6.4f * K, 6.4f * K);
+            gg.FillPolygon(b, [new PointF(c.X - 1 * K, c.Y - 3 * K), new PointF(c.X + 1 * K, c.Y - 3 * K),
+                new PointF(c.X + 0.6f * K, c.Y + 4 * K), new PointF(c.X - 0.6f * K, c.Y + 4 * K)]);
         });
 
         // ダイヤル表示（◎）
         DrawToggle(g, DialToggleRect, DialVisible, (gg, c, col) =>
         {
-            using var p = new Pen(col, 1.6f * S);
-            gg.DrawEllipse(p, c.X - 5 * S, c.Y - 5 * S, 10 * S, 10 * S);
-            gg.DrawLine(p, c.X, c.Y, c.X + 3 * S, c.Y - 3 * S);
+            using var p = new Pen(col, 1.6f * K);
+            gg.DrawEllipse(p, c.X - 5 * K, c.Y - 5 * K, 10 * K, 10 * K);
+            gg.DrawLine(p, c.X, c.Y, c.X + 3 * K, c.Y - 3 * K);
         });
 
         // 設定（⚙）
         DrawToggle(g, GearRect, false, (gg, c, col) =>
         {
-            using var p = new Pen(col, 1.6f * S);
+            using var p = new Pen(col, 1.6f * K);
             for (var i = 0; i < 8; i++)
             {
                 var a = i * Math.PI / 4;
-                gg.DrawLine(p, c.X + (float)Math.Cos(a) * 3.5f * S, c.Y + (float)Math.Sin(a) * 3.5f * S,
-                    c.X + (float)Math.Cos(a) * 6f * S, c.Y + (float)Math.Sin(a) * 6f * S);
+                gg.DrawLine(p, c.X + (float)Math.Cos(a) * 3.5f * K, c.Y + (float)Math.Sin(a) * 3.5f * K,
+                    c.X + (float)Math.Cos(a) * 6f * K, c.Y + (float)Math.Sin(a) * 6f * K);
             }
-            gg.DrawEllipse(p, c.X - 3.5f * S, c.Y - 3.5f * S, 7 * S, 7 * S);
+            gg.DrawEllipse(p, c.X - 3.5f * K, c.Y - 3.5f * K, 7 * K, 7 * K);
         }, TabInactiveText);
 
         // メニュー（≡）
         DrawToggle(g, MenuRect, false, (gg, c, col) =>
         {
-            using var p = new Pen(col, 1.4f * S);
-            for (var i = -1; i <= 1; i++) gg.DrawLine(p, c.X - 4 * S, c.Y + i * 3.5f * S, c.X + 4 * S, c.Y + i * 3.5f * S);
+            using var p = new Pen(col, 1.4f * K);
+            for (var i = -1; i <= 1; i++) gg.DrawLine(p, c.X - 4 * K, c.Y + i * 3.5f * K, c.X + 4 * K, c.Y + i * 3.5f * K);
         }, TabInactiveText);
     }
 
     private void DrawToggle(Graphics g, Rectangle rect, bool on, Action<Graphics, PointF, Color> drawIcon, Color? offColor = null)
     {
-        using (var path = DeckButtonRenderer.RoundedRect(rect, Px(4)))
+        using (var path = DeckButtonRenderer.RoundedRect(rect, Px(5)))
         using (var brush = new SolidBrush(on ? Accent : TabInactive))
             g.FillPath(brush, path);
         drawIcon(g, new PointF(rect.X + rect.Width / 2f, rect.Y + rect.Height / 2f), on ? Color.White : offColor ?? IconOff);
