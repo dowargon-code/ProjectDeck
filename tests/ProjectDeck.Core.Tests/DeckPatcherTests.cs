@@ -79,12 +79,4 @@ public class DeckPatcherTests
         Assert.True(deck.Ok);
         Assert.DoesNotContain(deck.Deck!.FindPage("a-mes")!.Buttons, b => b.Id == "a-mes-001");
     }
-
-    [Fact]
-    public void クリップボードの文章からJSONを取り出す()
-    {
-        var text = "パッチです。\n```json\n{\"a\":1}\n```\n以上";
-        Assert.Equal("{\"a\":1}", DeckJson.ExtractJson(text));
-        Assert.Equal("{\"b\":{\"c\":2}}", DeckJson.ExtractJson("前置き {\"b\":{\"c\":2}} 後"));
-    }
 }

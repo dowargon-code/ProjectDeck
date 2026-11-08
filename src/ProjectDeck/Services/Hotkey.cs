@@ -42,8 +42,4 @@ internal static class Hotkey
         parts.Add(key is >= Keys.D0 and <= Keys.D9 ? ((char)('0' + (key - Keys.D0))).ToString() : key.ToString());
         return string.Join("+", parts);
     }
-
-    /// <summary>比較用に正規化した表記</summary>
-    public static string Normalize(string? text) =>
-        TryParse(text, out var m, out var k) ? $"{m}:{k}" : "";
 }

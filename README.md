@@ -16,7 +16,7 @@ ProjectDeck/
 ├── build.ps1                # ビルドの入口：dist\ に配布物を作る
 ├── config/                  # [Git管理] 配布物に同梱する設定ファイルの原本
 │   └── settings.toml
-├── docs/                    # [Git管理] 仕様書・Grok用プロンプト・画面モック・引き継ぎ表
+├── docs/                    # [Git管理] 仕様書・Grok用プロンプト・画面モック・引き継ぎ表（保守はこのリポジトリで行う）
 ├── src/                     # [Git管理] ソースコード
 │   ├── ProjectDeck/         #   ランチャー本体（WinForms）
 │   ├── ProjectDeck.Core/    #   共通処理（deck.json/TOML の読込・検証・パッチ適用・履歴）
@@ -36,7 +36,7 @@ ProjectDeck/
 
 | フェーズ | 内容 | 状況 |
 |---|---|---|
-| 1 | 画面・ページ・アクション実行、deck.json / settings.toml の監視・検証・履歴、ランプ、📌、◎、⚙設定ダイアログ、常駐・ホットキー、D&D登録、定義コピー／取込、自動実行、deckctl | 実装済み |
+| 1 | 画面・ページ・アクション実行、deck.json / settings.toml の監視・検証・履歴、ランプ、📌、◎、⚙設定ダイアログ、常駐・ホットキー（表示/非表示）、D&D登録、自動実行、deckctl | 実装済み |
 | 2 | 画像URLの取得・キャッシュ（今は url 指定のボタンは関連付けアイコン／文字アイコンで表示） | 未着手 |
 | 3 | ダイヤル（音量・マイク・明るさ）。今は割付の表示のみ | 未着手 |
 
@@ -57,7 +57,7 @@ deckctl check-image <URL>            # 画像として取得できるか確認
 
 ## 動作確認用のデータフォルダ
 
-環境変数 `PROJECTDECK_HOME` を設定すると、`%USERPROFILE%\ProjectDeck\` の代わりにそのフォルダを使います（本体・deckctl とも）。普段のデータに触れずに試すときに使います。
+環境変数 `PROJECTDECK_HOME` を設定すると、`%USERPROFILE%\ProjectDeck\` の代わりにそのフォルダを使います（本体・deckctl とも）。普段のデータに触れずに試すときに使います。このときは PC起動時の自動実行の登録（レジストリ）にも触れません。
 
 ```powershell
 $env:PROJECTDECK_HOME = "D:\tmp\pdtest"; .\dist\ProjectDeck\ProjectDeck.exe

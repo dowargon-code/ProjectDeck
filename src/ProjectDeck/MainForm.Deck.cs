@@ -293,7 +293,7 @@ internal sealed partial class MainForm
         }
     }
 
-    // ================= deck.json への書込（D&D登録・削除・取込・元に戻す） =================
+    // ================= deck.json への書込（D&D登録・削除） =================
 
     /// <summary>パッチを適用して書き込み、すぐ画面に反映する。大量削除なら確認する</summary>
     private bool ApplyAppPatch(JsonObject patch, string what)
@@ -323,60 +323,6 @@ internal sealed partial class MainForm
             AcceptDeck(outcome.NewText, DeckValidator.Validate(outcome.NewText), fromApp: true);
         return true;
     }
-
-    private void UndoDeck()
-    {
-        var outcome = _deckStore.Undo();
-        if (FinishWrite(outcome, "元に戻す"))
-            Notify("元に戻しました", outcome.Warnings.FirstOrDefault() ?? "");
-    }
-
-    /// <summary>クリップボードから取込（"mode": "merge" は部分更新、それ以外は全体の置き換え）</summary>
-    private void ImportClipboard()
-    {
-        string text;
-        try { text = Clipboard.ContainsText() ? Clipboard.GetText() : ""; }
-        catch (System.Runtime.InteropServices.ExternalException) { text = ""; }
-        var json = DeckJson.ExtractJson(text);
-        if (json == null)
-        {
-            MessageBox.Show(this, "クリップボードに JSON がありません。", "ProjectDeck - 取込", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            return;
-        }
-        var node = DeckJson.TryParse(json, out var error);
-        if (node is not JsonObject obj)
-        {
-            MessageBox.Show(this, "JSON を読めません。\n\n" + (error ?? "最上位が { } ではありません"), "ProjectDeck - 取込",
-                MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            return;
-        }
-
-        ApplyOutcome outcome;
-        if (DeckPatcher.IsPatch(obj))
-        {
-            obj["updated_by"] ??= "clipboard";
-            outcome = _deckStore.ApplyPatch(obj);
-            if (outcome.NeedsForce && ConfirmForce(outcome)) outcome = _deckStore.ApplyPatch(obj, force: true);
-        }
-        else
-        {
-            if (MessageBox.Show(this, "部分更新（\"mode\": \"merge\"）ではない JSON です。\ndeck.json 全体をこの内容で置き換えますか？",
-                    "ProjectDeck - 取込", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2) != DialogResult.Yes)
-                return;
-            outcome = _deckStore.ReplaceAll(json, "clipboard");
-            if (outcome.NeedsForce && ConfirmForce(outcome)) outcome = _deckStore.ReplaceAll(json, "clipboard", force: true);
-        }
-        if (FinishWrite(outcome, "クリップボードから取込"))
-        {
-            var summary = $"追加 {outcome.Added.Count}・変更 {outcome.Changed.Count}・削除 {outcome.Deleted.Count}";
-            if (outcome.PagesAdded.Count > 0) summary += $"・新しいページ {string.Join(", ", outcome.PagesAdded)}";
-            Notify("取り込みました", summary);
-        }
-    }
-
-    private bool ConfirmForce(ApplyOutcome o) =>
-        MessageBox.Show(this, o.Errors.Last().Replace("--force を付けて実行してください", "反映しますか？"), "ProjectDeck",
-            MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2) == DialogResult.Yes;
 
     // ================= settings.toml =================
 
