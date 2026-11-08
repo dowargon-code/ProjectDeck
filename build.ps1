@@ -1,7 +1,7 @@
 ﻿$ErrorActionPreference = "Stop"
 
 # ProjectDeck をビルドして dist\ に配布物を作る
-#   dist\ProjectDeck\                 ProjectDeck.exe、deckctl.exe、settings.toml（config\ から）、README.md
+#   dist\ProjectDeck\                 ProjectDeck.exe、deckctl.exe、settings.toml（config\ から）、README.md、THIRD_PARTY_NOTICES.md
 #   dist\ProjectDeck-v<版>.zip        上のフォルダの中身
 # 版は Directory.Build.props の <Version>。
 # Windows PowerShell 5.1 が日本語のコメントを正しく読むよう、このファイルは BOM 付き UTF-8 で保存する
@@ -40,7 +40,7 @@ $App = Join-Path $Dist $AppName
 if (Test-Path $App) { Remove-Item -Recurse -Force $App }
 New-Item -ItemType Directory -Force $App | Out-Null
 Copy-Item (Join-Path $Publish "*") $App -Recurse -Exclude "*.pdb"
-Copy-Item "README.md" $App
+Copy-Item "README.md", "THIRD_PARTY_NOTICES.md" $App
 Copy-Item "config\*" $App
 
 $Zip = Join-Path $Dist "$AppName-v$Version.zip"
