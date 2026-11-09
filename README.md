@@ -46,12 +46,16 @@ Grok などの AI のコマンドで使う deckctl は、ランチャーが起�
 ## deckctl の使い方
 
 ```powershell
-deckctl get                          # ページ一覧
+deckctl get                          # ページ一覧とダイヤルの割り付け（dials）
 deckctl get --page a-mes             # ページ定義＋_info（行列数・空き位置・次のボタンID）
 deckctl apply <パッチ> --dry-run     # 書き込まずに結果だけ確認
 deckctl apply <パッチ> [--force]     # 適用（5個以上減る変更は --force が必要）
 deckctl validate                     # 現在の deck.json を検証
 deckctl undo                         # 1つ前の履歴に戻す
+deckctl rename a-mes-001 "仕様書"     # ボタンの表示名だけを変える（画像・動作はそのまま）
+deckctl dial set 1 master_volume --step 2          # ダイヤルを1つ割り付け（ほかのダイヤルはそのまま）
+deckctl dial set 2 app_volume --process spotify    # アプリ別音量は --process が必須
+deckctl dial remove 2                # ダイヤルを1つ外す
 deckctl check-image <URL>            # 画像として使えるか確認（形式・大きさ・短辺64px以上）
 ```
 
@@ -60,7 +64,7 @@ deckctl check-image <URL>            # 画像として使えるか確認（形�
 
 ## 動作確認用のデータフォルダ
 
-環境変数 `PROJECTDECK_HOME` を設定すると、`%USERPROFILE%\ProjectDeck\` の代わりにそのフォルダを使います（本体・deckctl とも）。普段のデータに触れずに試すときに使います。このときは PC起動時の自動実行の登録（レジストリ）に触れず、普段使いのランチャーと同時に起動できます。
+環境変数 `PROJECTDECK_HOME` を設定すると、`%USERPROFILE%\ProjectDeck\` の代わりにそのフォルダを使います（本体・deckctl とも）。普段のデータに触れずに試すときに使います。このときは PC起動時の自動実行の登録（レジストリ）に触れず、普段使いのランチャーと同時に起動できます。ただし deck.json の場所は settings.toml の `[interface] path` で決まるため、**そのフォルダに settings.toml を置いて path もそこに向けるか、deckctl に `--deck <パス>` を付けてください**（settings.toml が無いと既定の `%USERPROFILE%\ProjectDeck\deck.json`、つまり普段の deck.json を使います）。
 
 ```powershell
 $env:PROJECTDECK_HOME = "D:\tmp\pdtest"; .\dist\ProjectDeck\ProjectDeck.exe
