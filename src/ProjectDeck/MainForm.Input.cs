@@ -46,6 +46,7 @@ internal sealed partial class MainForm
         _buttonMenu.Items.Add(copyPath);
         var refetch = new ToolStripMenuItem("画像を再取得", null, (_, _) => RefetchButtonImage());
         _buttonMenu.Items.Add(refetch);
+        _buttonMenu.Items.Add("名前を変更…", null, (_, _) => RenameButton());
         _buttonMenu.Items.Add(new ToolStripSeparator());
         _buttonMenu.Items.Add("削除", null, (_, _) => DeleteButton());
         _buttonMenu.Opening += (_, _) =>
@@ -318,6 +319,14 @@ internal sealed partial class MainForm
             ["buttons"] = new JsonArray(new JsonObject { ["id"] = b.Id, ["delete"] = true }),
         });
         ApplyAppPatch(patch, "ボタンの削除");
+    }
+
+    private void RenameButton()
+    {
+        if (_menuButton is not { } b) return;
+        var label = RenameDialog.Ask(this, b.Label);
+        if (label == null || label == b.Label) return;
+        FinishWrite(_deckStore.Edit(cur => DeckEdits.RenameButton(cur, b.Id, label, "app")), "名前の変更");
     }
 
     private static JsonObject NewPatch() => new()
