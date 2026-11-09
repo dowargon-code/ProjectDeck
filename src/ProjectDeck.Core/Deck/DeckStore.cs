@@ -167,6 +167,17 @@ public sealed class DeckStore(string deckPath, string historyDirectory, int hist
             return (pr.Result, pr);
         }, dryRun, force);
 
+    /// <summary>
+    /// DeckEdits などの変更を適用する（パッチと同じく 検証 → バックアップ → 書き込み）。
+    /// change は現在の内容（検証済み）を受け取り、結果を返す。
+    /// </summary>
+    public ApplyOutcome Edit(Func<JsonObject, PatchResult> change, bool dryRun = false) =>
+        Update(current =>
+        {
+            var pr = change(current);
+            return (pr.Result, pr);
+        }, dryRun, force: false);
+
     /// <summary>1つ前の履歴に戻す（使った履歴ファイルは消すので、繰り返すとさらに前に戻る）</summary>
     public ApplyOutcome Undo()
     {

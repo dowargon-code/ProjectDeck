@@ -14,6 +14,9 @@ using ProjectDeck.Core.Settings;
 //   deckctl apply <パッチ> [--dry-run] [--force]
 //   deckctl validate                    現在の deck.json を検証
 //   deckctl undo                        1つ前の履歴に戻す
+//   deckctl rename <ボタンID> <名前> [--dry-run]   ボタンの表示名だけを変える
+//   deckctl dial set <1～4> <機能> [--step N] [--label 名前] [--process 名前] [--dry-run]
+//   deckctl dial remove <1～4> [--dry-run]
 //   deckctl check-image <URL>           URL が画像として取得できるか確認
 // 共通オプション：--deck <deck.jsonのパス>（settings.toml の指定より優先）
 
@@ -64,6 +67,10 @@ internal static class DeckCtl
                 return await ApplyAsync(store, s, opts, warnings);
             case "undo":
                 return Finish(store.Undo(), warnings, "undo");
+            case "rename":
+                return Rename(store, opts, warnings);
+            case "dial":
+                return Dial(store, opts, warnings);
             case "check-image":
                 if (opts.Positional.Count < 1) return Error(1, "URL を指定してください（deckctl check-image <URL>）");
                 using (var client = ImageProbe.CreateClient(s.Image.Proxy, s.Image.DownloadTimeoutSec))
@@ -127,6 +134,48 @@ internal static class DeckCtl
         Write(o);
         return v.Ok ? 0 : 1;
     }
+
+    private static int Rename(DeckStore store, Options opts, List<string> warnings)
+    {
+        if (opts.Positional.Count < 2)
+            return Error(1, "ボタンIDと新しい名前を指定してください（deckctl rename <ボタンID> <新しい名前>）");
+        var id = opts.Positional[0];
+        var label = string.Join(" ", opts.Positional.Skip(1));
+        var dryRun = opts.Has("--dry-run");
+        var outcome = store.Edit(cur => DeckEdits.RenameButton(cur, id, label, UpdatedBy(opts)), dryRun);
+        return Finish(outcome, warnings, dryRun ? "rename --dry-run" : "rename");
+    }
+
+    private static int Dial(DeckStore store, Options opts, List<string> warnings)
+    {
+        const string usage = "deckctl dial set <1～4> <機能> [--step N] [--label 名前] [--process 名前] ／ deckctl dial remove <1～4>";
+        var sub = opts.Positional.Count > 0 ? opts.Positional[0].ToLowerInvariant() : null;
+        if (sub is not ("set" or "remove") || opts.Positional.Count < 2)
+            return Error(1, "使い方: " + usage);
+        if (!int.TryParse(opts.Positional[1], out var index) || index is < 1 or > 4)
+            return Error(1, $"ダイヤル番号は 1～4 で指定してください: {opts.Positional[1]}");
+        var dryRun = opts.Has("--dry-run");
+        var name = (dryRun ? "dial " + sub + " --dry-run" : "dial " + sub);
+
+        if (sub == "remove")
+            return Finish(store.Edit(cur => DeckEdits.RemoveDial(cur, index, UpdatedBy(opts)), dryRun), warnings, name);
+
+        if (opts.Positional.Count < 3)
+            return Error(1, $"機能を指定してください（{string.Join(" / ", DialFunctions.All)}）。使い方: " + usage);
+        var function = opts.Positional[2];
+        if (!DialFunctions.All.Contains(function))
+            return Error(1, $"機能 \"{function}\" は使えません。使える機能: {string.Join(" / ", DialFunctions.All)}");
+        int? step = null;
+        if (opts.Get("--step") is { } stepText)
+        {
+            if (!int.TryParse(stepText, out var n)) return Error(1, $"--step は整数で指定してください: {stepText}");
+            step = n;
+        }
+        var outcome = store.Edit(cur => DeckEdits.SetDial(cur, index, function, step, opts.Get("--label"), opts.Get("--process"), UpdatedBy(opts)), dryRun);
+        return Finish(outcome, warnings, name);
+    }
+
+    private static string UpdatedBy(Options opts) => opts.Get("--by") ?? "deckctl";
 
     private static async Task<int> ApplyAsync(DeckStore store, AppSettings s, Options opts, List<string> warnings)
     {
@@ -228,6 +277,9 @@ internal static class DeckCtl
             "apply <パッチ> [--dry-run] [--force]",
             "validate",
             "undo",
+            "rename <ボタンID> <新しい名前> [--dry-run]",
+            "dial set <1～4> <master_volume|mic_volume|brightness|app_volume|none> [--step N] [--label 名前] [--process プロセス名] [--dry-run]",
+            "dial remove <1～4> [--dry-run]",
             "check-image <URL>"),
         ["exit_codes"] = "0:成功 / 1:検証エラー(deck.json変更なし) / 2:ファイル競合・読み書き失敗",
     };
@@ -238,7 +290,7 @@ internal static class DeckCtl
         public string? Command { get; private set; }
         public List<string> Positional { get; } = [];
         private readonly Dictionary<string, string?> _named = new(StringComparer.OrdinalIgnoreCase);
-        private static readonly HashSet<string> WithValue = new(StringComparer.OrdinalIgnoreCase) { "--page", "--deck" };
+        private static readonly HashSet<string> WithValue = new(StringComparer.OrdinalIgnoreCase) { "--page", "--deck", "--step", "--label", "--process", "--by" };
 
         public static Options Parse(string[] args)
         {

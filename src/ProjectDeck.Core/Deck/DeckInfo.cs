@@ -31,7 +31,21 @@ public static class DeckInfo
             ["rows"] = rows,
             ["cols"] = cols,
             ["pages"] = pages,
+            ["dials"] = DialList(deck),
         };
+    }
+
+    /// <summary>ダイヤルの割り付け（index 順）</summary>
+    public static JsonArray DialList(DeckData deck)
+    {
+        var list = new JsonArray();
+        foreach (var d in deck.Dials.OrderBy(d => d.Index))
+        {
+            var o = new JsonObject { ["index"] = d.Index, ["label"] = d.Label, ["function"] = d.Function, ["step"] = d.Step };
+            if (d.Process != null) o["process"] = d.Process;
+            list.Add(o);
+        }
+        return list;
     }
 
     /// <summary>指定ページの定義と _info。ページが無ければ null</summary>

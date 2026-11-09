@@ -144,7 +144,7 @@ internal sealed partial class SettingsForm : Form
         {
             AutoSize = true,
             ForeColor = SystemColors.GrayText,
-            Text = "ダイヤルごとの機能・刻み幅は deck.json の dials で割り付けます。\n（master_volume / mic_volume / app_volume / brightness / none）\n操作：ホイールで調整、Shift+ホイールで1%刻み、クリックでミュート。",
+            Text = "ダイヤルごとの機能・刻み幅は deck.json の dials（deckctl dial set）で割り付けます。\n（master_volume / mic_volume / app_volume / brightness / none）\n操作：ホイールで調整、Shift+ホイールで1%刻み、クリックでミュート。",
         });
 
         // ホットキー
