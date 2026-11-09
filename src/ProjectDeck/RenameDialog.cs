@@ -53,9 +53,10 @@ internal sealed class RenameDialog : Form
     }
 
     /// <summary>新しい名前（前後の空白は除く）。キャンセルなら null</summary>
-    public static string? Ask(IWin32Window owner, string current)
+    public static string? Ask(Form owner, string current)
     {
-        using var dialog = new RenameDialog(current);
+        // ランチャーが最前面（📌 ON）のときは、ダイアログも最前面にしないとランチャーの下に隠れる
+        using var dialog = new RenameDialog(current) { TopMost = owner.TopMost };
         return dialog.ShowDialog(owner) == DialogResult.OK ? dialog._text.Text.Trim() : null;
     }
 }
