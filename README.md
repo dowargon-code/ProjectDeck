@@ -64,7 +64,7 @@ deckctl check-image <URL>            # 画像として使えるか確認（形�
 
 ## 動作確認用のデータフォルダ
 
-環境変数 `PROJECTDECK_HOME` を設定すると、`%USERPROFILE%\ProjectDeck\` の代わりにそのフォルダを使います（本体・deckctl とも）。普段のデータに触れずに試すときに使います。ただし deck.json の場所は settings.toml の `[interface] path` で決まるため、**そのフォルダに settings.toml を置いて path もそこに向けるか、deckctl に `--deck <パス>` を付けてください**（settings.toml が無いと既定の `%USERPROFILE%\ProjectDeck\deck.json`、つまり普段の deck.json を使います）。このときは PC起動時の自動実行の登録（レジストリ）に触れず、普段使いのランチャーと同時に起動できます。
+環境変数 `PROJECTDECK_HOME` を設定すると、`%USERPROFILE%\ProjectDeck\` の代わりにそのフォルダを使います（本体・deckctl とも）。普段のデータに触れずに試すときに使います。このときは PC起動時の自動実行の登録（レジストリ）に触れず、普段使いのランチャーと同時に起動できます。ただし deck.json の場所は settings.toml の `[interface] path` で決まるため、**そのフォルダに settings.toml を置いて path もそこに向けるか、deckctl に `--deck <パス>` を付けてください**（settings.toml が無いと既定の `%USERPROFILE%\ProjectDeck\deck.json`、つまり普段の deck.json を使います）。
 
 ```powershell
 $env:PROJECTDECK_HOME = "D:\tmp\pdtest"; .\dist\ProjectDeck\ProjectDeck.exe
