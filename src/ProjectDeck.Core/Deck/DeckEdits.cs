@@ -38,6 +38,75 @@ public static class DeckEdits
     }
 
     /// <summary>
+    /// ボタンを同じページ内の別の位置に動かす（本体のドラッグ移動）。
+    /// 移動先に別のボタンがあれば位置を入れ替える。
+    /// </summary>
+    public static PatchResult MoveButton(JsonObject current, string buttonId, int row, int col, string updatedBy)
+    {
+        var r = new PatchResult();
+        if (row < 1 || col < 1)
+        {
+            r.Errors.Add($"移動先の位置が正しくありません（{row}行{col}列）");
+            return r;
+        }
+        var result = (JsonObject)current.DeepClone();
+        var (page, button) = FindButton(result, buttonId);
+        if (page == null || button == null)
+        {
+            r.Errors.Add($"ボタン \"{buttonId}\" がありません");
+            return r;
+        }
+        var oldRow = button["row"].TryGetInt64(out var or) ? or : 0;
+        var oldCol = button["col"].TryGetInt64(out var oc) ? oc : 0;
+        if (oldRow == row && oldCol == col) return Finish(result, r, updatedBy);
+
+        var other = (page["buttons"] as JsonArray)?.OfType<JsonObject>()
+            .FirstOrDefault(b => b != button && b["row"].TryGetInt64(out var br) && br == row && b["col"].TryGetInt64(out var bc) && bc == col);
+        if (other != null)
+        {
+            other["row"] = oldRow;
+            other["col"] = oldCol;
+            r.Changed.Add(GetString(other, "id") ?? "");
+        }
+        button["row"] = row;
+        button["col"] = col;
+        r.Changed.Insert(0, buttonId);
+        return Finish(result, r, updatedBy);
+    }
+
+    /// <summary>
+    /// ボタンの画像（image）だけを置き換える（本体への画像ファイルのドロップ）。image が null なら画像を外す。
+    /// 中身の正しさ（url / file / data / color のどれか1つ など）は DeckStore.Edit の再検証で確かめる。
+    /// </summary>
+    public static PatchResult SetButtonImage(JsonObject current, string buttonId, JsonObject? image, string updatedBy)
+    {
+        var r = new PatchResult();
+        var result = (JsonObject)current.DeepClone();
+        var (_, button) = FindButton(result, buttonId);
+        if (button == null)
+        {
+            r.Errors.Add($"ボタン \"{buttonId}\" がありません");
+            return r;
+        }
+        var before = button["image"]?.ToJsonString();
+        if (image == null) button.Remove("image");
+        else button["image"] = image.DeepClone();
+        if (before != button["image"]?.ToJsonString()) r.Changed.Add(buttonId);
+        return Finish(result, r, updatedBy);
+    }
+
+    /// <summary>ボタンと、それが載っているページ</summary>
+    private static (JsonObject? Page, JsonObject? Button) FindButton(JsonObject root, string buttonId)
+    {
+        foreach (var page in (root["pages"] as JsonArray)?.OfType<JsonObject>() ?? [])
+        {
+            var button = (page["buttons"] as JsonArray)?.OfType<JsonObject>().FirstOrDefault(b => GetString(b, "id") == buttonId);
+            if (button != null) return (page, button);
+        }
+        return (null, null);
+    }
+
+    /// <summary>
     /// ダイヤルを1つ追加・上書きする（同じ index があれば置き換え、ほかのダイヤルはそのまま）。
     /// label を省くと、上書き時は今の名前を残し、新規なら機能名から決める。
     /// step を省くと、上書き時は今の値を残し、新規なら 2。

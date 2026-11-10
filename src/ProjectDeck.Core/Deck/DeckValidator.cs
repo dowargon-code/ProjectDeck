@@ -269,6 +269,9 @@ public static partial class DeckValidator
                 break;
             case ActionTypes.OpenUrl:
                 url = Str(obj, "url", path, r, required: true);
+                // ShellExecute にそのまま渡すので、exe のパスなどを書かれても実行しないよう http(s) に限る
+                if (url != null && !(Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https"))
+                    r.Errors.Add($"{path}.url: http(s) のURLである必要があります");
                 break;
             case ActionTypes.Page:
                 target = Str(obj, "target", path, r, required: true);

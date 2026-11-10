@@ -43,6 +43,20 @@ public class DeckValidatorTests
     }
 
     [Fact]
+    public void open_urlはhttpかhttpsだけ()
+    {
+        static ValidationResult With(string url) => DeckValidator.Validate($$$"""
+            {"schema":"projectdeck/1","revision":1,"pages":[{"id":"p","name":"P","buttons":[
+              {"id":"p-001","row":1,"col":1,"label":"a","action":{"type":"open_url","url":"{{{url}}}"}}]}]}
+            """);
+        Assert.True(With("https://example.com/a?b=1").Ok);
+        Assert.True(With("http://nas01/share").Ok);
+        Assert.Contains(With("C:/Windows/System32/calc.exe").Errors, e => e.Contains("http(s)"));
+        Assert.Contains(With("file:///C:/x.txt").Errors, e => e.Contains("http(s)"));
+        Assert.Contains(With("example.com").Errors, e => e.Contains("http(s)"));
+    }
+
+    [Fact]
     public void 位置とIDの重複を検出()
     {
         var r = DeckValidator.Validate("""

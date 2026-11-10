@@ -75,6 +75,7 @@ internal sealed partial class MainForm : Form
         // ダイヤル（音量・マイク・明るさ）。値が変わったらダイヤル部だけ描き直す
         _dials = new DialManager();
         _dials.Changed += () => { if (IsHandleCreated && !IsDisposed) BeginInvoke(InvalidateDials); };
+        if (_dials.AudioUnavailable is { } audioWarning) _miscWarnings.Add(audioWarning);
 
         InitDeck();
         _dials.Rebuild(_deck?.Dials ?? []);
@@ -325,7 +326,21 @@ internal sealed partial class MainForm : Form
                     rect.Inflate(-shrink, -shrink);
                 }
                 g.DrawImage(bmp, rect);
-                if (_hover == (r, c) && _pressed == null)
+                if (_dragSource == (r, c))
+                {
+                    // ドラッグ移動中の元の位置は薄く
+                    using var path = DeckButtonRenderer.RoundedRect(rect, radius);
+                    using var dim = new SolidBrush(Color.FromArgb(150, BackColorMain));
+                    g.FillPath(dim, path);
+                }
+                else if (_dropTarget == (r, c))
+                {
+                    // 入れ替え先・画像を置く先
+                    using var path = DeckButtonRenderer.RoundedRect(rect, radius);
+                    using var hl = new Pen(Accent, 2 * S);
+                    g.DrawPath(hl, path);
+                }
+                else if (_hover == (r, c) && _pressed == null && _dragSource == null)
                 {
                     using var path = DeckButtonRenderer.RoundedRect(rect, radius);
                     using var hl = new Pen(Color.FromArgb(110, 255, 255, 255), 1.5f * S);
@@ -477,33 +492,26 @@ internal sealed partial class MainForm : Form
         Image? loaded = null;
         try
         {
+            // url と同じ読み方（GDI+ → WIC）にして、file でも WebP を使えるようにする
             if (img.File != null)
             {
-                var bytes = File.ReadAllBytes(PathExpander.Expand(img.File, page.Vars));
-                loaded = LoadImage(bytes);
+                loaded = ImageDecoder.Decode(File.ReadAllBytes(PathExpander.Expand(img.File, page.Vars)));
             }
             else if (img.Data != null)
             {
                 var data = img.Data;
                 var comma = data.IndexOf(',');
                 if (data.StartsWith("data:", StringComparison.OrdinalIgnoreCase) && comma > 0) data = data[(comma + 1)..];
-                loaded = LoadImage(Convert.FromBase64String(data));
+                loaded = ImageDecoder.Decode(Convert.FromBase64String(data));
             }
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or FormatException or ArgumentException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or FormatException or ArgumentException or InvalidDataException or OutOfMemoryException)
         {
             _imageWarnings.Add($"{b.Id}: 画像を読み込めません（{ex.Message}）");
             Logger.Warn($"画像を読み込めません {b.Id}: {ex.Message}");
         }
         _pictureCache[key] = loaded;
         return loaded;
-    }
-
-    private static Bitmap LoadImage(byte[] bytes)
-    {
-        using var ms = new MemoryStream(bytes);
-        using var img = Image.FromStream(ms);
-        return new Bitmap(img);
     }
 
     /// <summary>描画キャッシュを捨てる（設定変更・DPI変更時）</summary>

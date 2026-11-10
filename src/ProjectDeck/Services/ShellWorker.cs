@@ -14,6 +14,7 @@ internal sealed class ShellWorker : IDisposable
 {
     private readonly BlockingCollection<string> _queue = new();
     private readonly ConcurrentDictionary<string, PathInfo> _results = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, Bitmap?> _icons = new(StringComparer.OrdinalIgnoreCase); // 取得済みのアイコン（RecheckAll でも残す）
     private readonly ConcurrentDictionary<string, byte> _pending = new(StringComparer.OrdinalIgnoreCase);
     private readonly Thread _thread;
     private readonly int _iconSize;
@@ -40,13 +41,10 @@ internal sealed class ShellWorker : IDisposable
         return null;
     }
 
-    /// <summary>結果を捨てて確認し直す（読み直し時・右クリック「再確認」など）</summary>
-    public void Invalidate(string path)
-    {
-        _results.TryRemove(path, out _);
-    }
-
-    /// <summary>存在確認の結果だけ捨てる（アイコンは保持）。読み直しのたびに NAS の接続状態を見直すため</summary>
+    /// <summary>
+    /// 存在確認の結果だけ捨てる（取得済みのアイコンは _icons に残る）。読み直しのたびに NAS の接続状態を見直すため。
+    /// アイコンの取得はシェルの COM 呼び出しで重いので、deck.json を反映するたびに取り直さない。
+    /// </summary>
     public void RecheckAll()
     {
         foreach (var key in _results.Keys) _results.TryRemove(key, out _);
@@ -57,7 +55,7 @@ internal sealed class ShellWorker : IDisposable
         foreach (var path in _queue.GetConsumingEnumerable())
         {
             var exists = Exists(path);
-            var icon = exists ? LoadIcon(path, _iconSize) : null;
+            var icon = exists ? _icons.GetOrAdd(path, p => LoadIcon(p, _iconSize)) : null;
             _results[path] = new PathInfo(exists, icon);
             _pending.TryRemove(path, out _);
             try { Completed?.Invoke(path); } catch (Exception) { }

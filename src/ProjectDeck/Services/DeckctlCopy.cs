@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using ProjectDeck.Core;
 
 namespace ProjectDeck.Services;
@@ -9,16 +11,39 @@ namespace ProjectDeck.Services;
 /// </summary>
 internal static class DeckctlCopy
 {
-    /// <summary>deckctl を動かすのに必要なファイル（ランチャー本体の exe の隣にあるもの）</summary>
-    private static readonly string[] Files =
-    [
-        "deckctl.exe",
-        "deckctl.dll",
-        "deckctl.deps.json",
-        "deckctl.runtimeconfig.json",
-        "ProjectDeck.Core.dll",
-        "Tomlyn.dll",
-    ];
+    /// <summary>deckctl の起動に必ず要るファイル。DLL は deckctl.deps.json から読む（Core に NuGet を足してもコピー漏れしないように）</summary>
+    private static readonly string[] BaseFiles = ["deckctl.exe", "deckctl.deps.json", "deckctl.runtimeconfig.json"];
+
+    /// <summary>deps.json が読めないときの予備</summary>
+    private static readonly string[] FallbackDlls = ["deckctl.dll", "ProjectDeck.Core.dll", "Tomlyn.dll"];
+
+    /// <summary>コピーするファイル名の一覧（exe の隣の deckctl.deps.json に書かれた DLL ＋ 基本ファイル）</summary>
+    internal static IReadOnlyList<string> FilesFor(string sourceDirectory)
+    {
+        var dlls = new List<string>();
+        var depsPath = Path.Combine(sourceDirectory, "deckctl.deps.json");
+        try
+        {
+            // 無ければ呼び出し側の「ファイルが足りない」警告に任せる（開発中の bin フォルダなど）
+            var deps = File.Exists(depsPath) ? JsonNode.Parse(File.ReadAllText(depsPath)) : null;
+            // targets → { ".NETCoreApp,Version=v10.0/win-x64": { "ライブラリ/版": { "runtime": { "X.dll": {} }, "native": { ... } } } }
+            foreach (var target in (deps?["targets"] as JsonObject)?.Select(t => t.Value).OfType<JsonObject>() ?? [])
+                foreach (var lib in target.Select(l => l.Value).OfType<JsonObject>())
+                    foreach (var group in new[] { "runtime", "native" })
+                        foreach (var (file, _) in lib[group] as JsonObject ?? [])
+                            dlls.Add(Path.GetFileName(file.Replace('/', '\\')));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
+        {
+            Logger.Warn("deckctl.deps.json を読めないため、既定の一覧でコピーします: " + ex.Message);
+        }
+        if (dlls.Count == 0)
+        {
+            if (File.Exists(depsPath)) Logger.Warn("deckctl.deps.json に DLL の一覧が無いため、既定の一覧でコピーします");
+            dlls.AddRange(FallbackDlls);
+        }
+        return BaseFiles.Concat(dlls).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+    }
 
     /// <summary>コピー先（Grok のスキルに書く場所）</summary>
     public static string TargetDirectory => Path.Combine(AppPaths.DataDirectory, "deckctl");
@@ -34,7 +59,8 @@ internal static class DeckctlCopy
         if (!testMode && source.Contains(@"\bin\", StringComparison.OrdinalIgnoreCase))
             return null;
 
-        var missing = Files.Where(f => !File.Exists(Path.Combine(source, f))).ToList();
+        var files = FilesFor(source);
+        var missing = files.Where(f => !File.Exists(Path.Combine(source, f))).ToList();
         if (missing.Count > 0)
             return $"deckctl を {TargetDirectory} にコピーできません（ランチャーの隣に {string.Join(", ", missing)} がありません）";
 
@@ -42,7 +68,7 @@ internal static class DeckctlCopy
         {
             Directory.CreateDirectory(TargetDirectory);
             var copied = 0;
-            foreach (var name in Files)
+            foreach (var name in files)
             {
                 var from = new FileInfo(Path.Combine(source, name));
                 var to = new FileInfo(Path.Combine(TargetDirectory, name));
