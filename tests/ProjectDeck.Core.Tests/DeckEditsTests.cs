@@ -51,6 +51,55 @@ public sealed class DeckEditsTests : IDisposable
     }
 
     [Fact]
+    public void ボタンを空きに動かし埋まっていれば入れ替える()
+    {
+        var two = Deck.Replace("]}],", """
+            ,{"id":"p-002","row":2,"col":2,"label":"B","action":{"type":"open_url","url":"https://example.com/b"}}]}],
+            """);
+        File.WriteAllText(_store.DeckPath, two);
+
+        var o = _store.Edit(c => DeckEdits.MoveButton(c, "p-001", 3, 3, "test"));
+        Assert.True(o.Ok, string.Join("\n", o.Errors));
+        Assert.Equal(["p-001"], o.Changed);
+        Assert.Equal((3, 3), (Current().Pages[0].Buttons[0].Row, Current().Pages[0].Buttons[0].Col));
+
+        o = _store.Edit(c => DeckEdits.MoveButton(c, "p-001", 2, 2, "test"));
+        Assert.True(o.Ok, string.Join("\n", o.Errors));
+        Assert.Equal(["p-001", "p-002"], o.Changed);
+        var page = Current().Pages[0];
+        Assert.Equal("p-001", page.ButtonAt(2, 2)?.Id);
+        Assert.Equal("p-002", page.ButtonAt(3, 3)?.Id);
+        Assert.Equal("#336699", page.Buttons[0].Image?.Color); // ほかの項目は残る
+
+        // 同じ位置へは変更なし、範囲外・無いボタンはエラー
+        Assert.Empty(_store.Edit(c => DeckEdits.MoveButton(c, "p-001", 2, 2, "test"), dryRun: true).Changed);
+        Assert.False(_store.Edit(c => DeckEdits.MoveButton(c, "p-001", 0, 1, "test")).Ok);
+        Assert.False(_store.Edit(c => DeckEdits.MoveButton(c, "p-999", 1, 1, "test")).Ok);
+    }
+
+    [Fact]
+    public void ボタンの画像だけを置き換える()
+    {
+        var o = _store.Edit(c => DeckEdits.SetButtonImage(c, "p-001", new JsonObject { ["file"] = "D:/img/a.png" }, "test"));
+        Assert.True(o.Ok, string.Join("\n", o.Errors));
+        Assert.Equal(["p-001"], o.Changed);
+        var b = Current().Pages[0].Buttons[0];
+        Assert.Equal("D:/img/a.png", b.Image?.File);
+        Assert.Null(b.Image?.Color);
+        Assert.Equal("資料", b.Label);
+
+        // 外す
+        o = _store.Edit(c => DeckEdits.SetButtonImage(c, "p-001", null, "test"));
+        Assert.True(o.Ok);
+        Assert.Null(Current().Pages[0].Buttons[0].Image);
+
+        // 検証に通らない image は書き込まない
+        var bad = new JsonObject { ["file"] = "a.png", ["color"] = "#000000" };
+        Assert.False(_store.Edit(c => DeckEdits.SetButtonImage(c, "p-001", bad, "test")).Ok);
+        Assert.False(_store.Edit(c => DeckEdits.SetButtonImage(c, "p-999", null, "test")).Ok);
+    }
+
+    [Fact]
     public void ダイヤルを追加すると番号順に並び既定の名前が付く()
     {
         var o = _store.Edit(c => DeckEdits.SetDial(c, 3, "mic_volume", null, null, null, "test"));

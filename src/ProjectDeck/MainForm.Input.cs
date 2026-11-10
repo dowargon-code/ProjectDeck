@@ -13,8 +13,11 @@ namespace ProjectDeck;
 internal sealed partial class MainForm
 {
     private (int Row, int Col)? _pressed;
+    private Point _pressPoint;
     private (int Row, int Col)? _hover;
-    private (int Row, int Col)? _dropTarget;
+    private (int Row, int Col)? _dropTarget;   // D&D（ファイル・画像）とボタンのドラッグ移動の行き先
+    private (int Row, int Col)? _dragSource;   // ドラッグ移動中のボタンの元の位置
+    private DeckButton? _dragButton;
     private int _wheelRemainder;
     private string? _tipText;
     private bool _exiting;
@@ -22,8 +25,10 @@ internal sealed partial class MainForm
 
     private ContextMenuStrip _menu = null!;
     private ContextMenuStrip _buttonMenu = null!;
+    private ContextMenuStrip _pageMenu = null!;
     private NotifyIcon _tray = null!;
     private DeckButton? _menuButton;
+    private string? _menuPageId;
 
     private const int HotkeyToggle = 1;
 
@@ -32,6 +37,8 @@ internal sealed partial class MainForm
     private void InitMenus()
     {
         _menu = new ContextMenuStrip();
+        _menu.Items.Add("新しいページ…", null, (_, _) => AddPage());
+        _menu.Items.Add(new ToolStripSeparator());
         _menu.Items.Add("deck.json を開く", null, (_, _) => OpenText(_deckStore.DeckPath));
         _menu.Items.Add("settings.toml を開く", null, (_, _) => OpenText(_settingsStore.SettingsPath));
         _menu.Items.Add("データフォルダを開く", null, (_, _) => StartShell("explorer.exe", $"\"{AppPaths.DataDirectory}\""));
@@ -57,6 +64,11 @@ internal sealed partial class MainForm
             copyPath.Text = target?.StartsWith("http", StringComparison.OrdinalIgnoreCase) == true ? "URLをコピー" : "パスをコピー";
             refetch.Visible = _menuButton?.Image?.Url != null;
         };
+
+        // ページタブの右クリック
+        _pageMenu = new ContextMenuStrip();
+        _pageMenu.Items.Add("名前・色を変更…", null, (_, _) => EditPage());
+        _pageMenu.Items.Add("新しいページ…", null, (_, _) => AddPage());
 
         var trayMenu = new ContextMenuStrip();
         trayMenu.Items.Add("表示", null, (_, _) => ShowLauncher());
@@ -105,6 +117,7 @@ internal sealed partial class MainForm
         if (cell != null && CurrentPage?.ButtonAt(cell.Value.Row, cell.Value.Col) != null)
         {
             _pressed = cell;
+            _pressPoint = e.Location;
             Invalidate(CellRect(cell.Value.Row, cell.Value.Col));
             return;
         }
@@ -121,6 +134,15 @@ internal sealed partial class MainForm
     {
         base.OnMouseUp(e);
         var cell = CellAt(e.Location);
+        if (e.Button == MouseButtons.Left && _dragSource is { } source)
+        {
+            // ドラッグ移動の確定：空きなら移動、別のボタンがあれば入れ替え
+            var button = _dragButton;
+            EndDrag();
+            if (button != null && cell != null && cell != source)
+                FinishWrite(_deckStore.Edit(cur => DeckEdits.MoveButton(cur, button.Id, cell.Value.Row, cell.Value.Col, "app")), "ボタンの移動");
+            return;
+        }
         if (e.Button == MouseButtons.Left && _pressed == null && DialAt(e.Location) is { } dial)
         {
             // ダイヤルのクリック：ミュート切替（明るさは無効）
@@ -145,6 +167,11 @@ internal sealed partial class MainForm
                 _menuButton = b;
                 _buttonMenu.Show(this, e.Location);
             }
+            else if (_tabRects.FirstOrDefault(t => t.Rect.Contains(e.Location)) is { PageId: { } pageId })
+            {
+                _menuPageId = pageId;
+                _pageMenu.Show(this, e.Location);
+            }
             else
             {
                 _menu.Show(this, e.Location);
@@ -156,6 +183,30 @@ internal sealed partial class MainForm
     {
         base.OnMouseMove(e);
         var cell = CellAt(e.Location);
+
+        // ボタンを押したまま一定以上動かしたらドラッグ移動を始める（押下→離すの「実行」とは区別する）
+        if (_pressed is { } pressed && e.Button == MouseButtons.Left && _dragSource == null
+            && (Math.Abs(e.X - _pressPoint.X) > SystemInformation.DragSize.Width || Math.Abs(e.Y - _pressPoint.Y) > SystemInformation.DragSize.Height)
+            && CurrentPage?.ButtonAt(pressed.Row, pressed.Col) is { } dragged)
+        {
+            _pressed = null;
+            _dragSource = pressed;
+            _dragButton = dragged;
+            Cursor = Cursors.SizeAll;
+            _tipText = null;
+            _tip.SetToolTip(this, null);
+            Invalidate();
+        }
+        if (_dragSource is { } src)
+        {
+            var target = cell != null && cell != src ? cell : null;
+            if (target != _dropTarget)
+            {
+                _dropTarget = target;
+                Invalidate();
+            }
+            return;
+        }
         var hover = cell != null && CurrentPage?.ButtonAt(cell.Value.Row, cell.Value.Col) != null ? cell : null;
         if (hover != _hover)
         {
@@ -221,7 +272,19 @@ internal sealed partial class MainForm
     protected override void OnKeyDown(KeyEventArgs e)
     {
         base.OnKeyDown(e);
-        if (e.KeyCode == Keys.Escape) Hide();
+        if (e.KeyCode != Keys.Escape) return;
+        if (_dragSource != null) EndDrag(); // ドラッグ移動の取り消し
+        else Hide();
+    }
+
+    /// <summary>ドラッグ移動の状態を片付ける（確定・取り消しの両方）</summary>
+    private void EndDrag()
+    {
+        _dragSource = null;
+        _dragButton = null;
+        _dropTarget = null;
+        Cursor = Cursors.Default;
+        Invalidate();
     }
 
     // ================= ページ =================
@@ -336,14 +399,53 @@ internal sealed partial class MainForm
         ["updated_by"] = "app",
     };
 
-    // ================= D&D 登録（仕様書 F-10） =================
+    // ================= ページの追加・変更 =================
+
+    private void AddPage()
+    {
+        var existing = _deck?.Pages.Select(p => p.Id).ToHashSet() ?? [];
+        var edit = PageDialog.AskNew(this, existing);
+        if (edit == null) return;
+        var pageJson = new JsonObject { ["id"] = edit.Id, ["name"] = edit.Name };
+        if (edit.Color != null) pageJson["color"] = edit.Color;
+        if (edit.Root != null) pageJson["vars"] = new JsonObject { ["root"] = edit.Root };
+        var patch = NewPatch();
+        patch["pages"] = new JsonArray(pageJson);
+        if (ApplyAppPatch(patch, "ページの追加")) SelectPage(edit.Id);
+    }
+
+    private void EditPage()
+    {
+        if (_menuPageId == null || _deck?.FindPage(_menuPageId) is not { } page) return;
+        var edit = PageDialog.AskEdit(this, page);
+        if (edit == null || (edit.Name == page.Name && edit.Color == page.Color)) return;
+        // name と color だけを送る（vars・buttons には触れない）。color を外すときは null で項目を消す
+        var pageJson = new JsonObject { ["id"] = page.Id, ["name"] = edit.Name, ["color"] = edit.Color };
+        var patch = NewPatch();
+        patch["pages"] = new JsonArray(pageJson);
+        ApplyAppPatch(patch, "ページの変更");
+    }
+
+    // ================= D&D 登録（仕様書 F-10）・画像の設定 =================
+
+    private static readonly HashSet<string> ImageExtensions = new(StringComparer.OrdinalIgnoreCase)
+        { ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp", ".ico" };
+
+    private static bool IsImageFile(string path) => File.Exists(path) && ImageExtensions.Contains(Path.GetExtension(path));
+
+    /// <summary>ドロップできるか。空きならファイル登録、ボタンの上なら画像ファイル1つだけ（画像の設定）</summary>
+    private bool CanDrop(DragEventArgs e, (int Row, int Col)? cell)
+    {
+        if (cell == null || e.Data?.GetData(DataFormats.FileDrop) is not string[] { Length: > 0 } files) return false;
+        if (CurrentPage?.ButtonAt(cell.Value.Row, cell.Value.Col) == null) return true;
+        return files.Length == 1 && IsImageFile(files[0]);
+    }
 
     protected override void OnDragOver(DragEventArgs e)
     {
         base.OnDragOver(e);
         var cell = CellAt(PointToClient(new Point(e.X, e.Y)));
-        var ok = e.Data?.GetDataPresent(DataFormats.FileDrop) == true && cell != null
-                 && CurrentPage?.ButtonAt(cell.Value.Row, cell.Value.Col) == null;
+        var ok = CanDrop(e, cell);
         e.Effect = ok ? DragDropEffects.Copy : DragDropEffects.None;
         var target = ok ? cell : null;
         if (target != _dropTarget)
@@ -367,7 +469,19 @@ internal sealed partial class MainForm
         _dropTarget = null;
         Invalidate();
         if (start == null || e.Data?.GetData(DataFormats.FileDrop) is not string[] files || files.Length == 0) return;
+        if (CurrentPage is { } page && page.ButtonAt(start.Value.Row, start.Value.Col) is { } target)
+        {
+            if (files.Length == 1 && IsImageFile(files[0])) SetButtonImageFile(target, files[0], page);
+            return;
+        }
         RegisterDroppedFiles(files, start.Value);
+    }
+
+    /// <summary>ボタンの画像を、ドロップした画像ファイル（image.file）にする。動作・名前はそのまま</summary>
+    private void SetButtonImageFile(DeckButton b, string path, DeckPage page)
+    {
+        var image = new JsonObject { ["file"] = ToDeckPath(path, page.Vars) };
+        FinishWrite(_deckStore.Edit(cur => DeckEdits.SetButtonImage(cur, b.Id, image, "app")), "画像の設定");
     }
 
     /// <summary>ドロップしたファイル・フォルダをボタンにする。複数ならドロップ位置から空きに順に置く</summary>

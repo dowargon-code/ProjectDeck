@@ -23,6 +23,7 @@ internal sealed partial class MainForm
     private readonly Timer _blinkTimer = new() { Interval = 400 };
     private readonly Timer _doneTimer = new() { Interval = 3000 };
     private readonly Timer _dialPollTimer = new() { Interval = 2000 }; // アプリ別音量・明るさは通知が無いので定期的に読む
+    private readonly Timer _watcherRetry = new() { Interval = 5000 };  // 監視が止まった・始められなかったときのやり直し
     private bool _blinkOn = true;
     private bool _loading;
     private bool _justDone;
@@ -56,16 +57,47 @@ internal sealed partial class MainForm
         _doneTimer.Tick += (_, _) => { _doneTimer.Stop(); _justDone = false; Invalidate(LampRect); };
         _dialPollTimer.Tick += (_, _) => { if (Visible && DialVisible && _dials.NeedsPolling) _dials.RefreshPolled(); };
         _dialPollTimer.Start();
+        _watcherRetry.Tick += (_, _) => RetryWatchers();
     }
 
     // ================= 監視 =================
+
+    private const string WatchWarning = "を監視できません";
 
     private void StartWatchers()
     {
         _deckWatcher?.Dispose();
         _settingsWatcher?.Dispose();
+        _miscWarnings.RemoveAll(w => w.Contains(WatchWarning));
         _deckWatcher = CreateWatcher(_deckStore.DeckPath, () => RestartTimer(_deckDebounce));
         _settingsWatcher = CreateWatcher(_settingsStore.SettingsPath, () => RestartTimer(_settingsDebounce));
+        // 始められなかったもの（フォルダが無い・NAS 未接続など）は、あとで繰り返しやり直す
+        if (_deckWatcher == null || _settingsWatcher == null) _watcherRetry.Start();
+        else _watcherRetry.Stop();
+        Invalidate(LampRect);
+    }
+
+    /// <summary>監視が止まったあとのやり直し。再開できたら、止まっていた間の変更を拾うために読み直す</summary>
+    private void RetryWatchers()
+    {
+        var hadWarning = _miscWarnings.Any(w => w.Contains(WatchWarning));
+        StartWatchers();
+        if (hadWarning && _deckWatcher != null && _settingsWatcher != null)
+        {
+            Logger.Info("ファイルの監視を再開しました");
+            RestartTimer(_deckDebounce);
+            RestartTimer(_settingsDebounce);
+        }
+    }
+
+    /// <summary>監視がエラーで止まった（バッファあふれ・ネットワーク切断など）。警告を出してやり直す</summary>
+    private void OnWatcherError(string file, Exception ex)
+    {
+        Logger.Warn($"監視が止まりました {file}: {ex.Message}");
+        var warning = $"{file} {WatchWarning}（監視が止まったため、やり直しています）: {ex.Message}";
+        if (!_miscWarnings.Contains(warning)) _miscWarnings.Add(warning);
+        _watcherRetry.Start();
+        Invalidate(LampRect);
     }
 
     private FileSystemWatcher? CreateWatcher(string file, Action onChange)
@@ -84,13 +116,14 @@ internal sealed partial class MainForm
             w.Changed += h;
             w.Created += h;
             w.Renamed += (_, _) => BeginInvokeSafe(onChange);
+            w.Error += (_, e) => BeginInvokeSafe(() => OnWatcherError(file, e.GetException()));
             w.EnableRaisingEvents = true;
             return w;
         }
         catch (Exception ex) when (ex is IOException or ArgumentException or UnauthorizedAccessException)
         {
             Logger.Warn($"監視を開始できません {file}: {ex.Message}");
-            _miscWarnings.Add($"{file} を監視できません: {ex.Message}");
+            _miscWarnings.Add($"{file} {WatchWarning}: {ex.Message}");
             return null;
         }
     }

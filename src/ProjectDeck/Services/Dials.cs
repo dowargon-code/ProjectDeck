@@ -126,14 +126,21 @@ internal sealed class AppVolumeDial(MMDeviceEnumerator enumerator, string proces
             var found = false;
             for (var i = 0; i < sessions.Count; i++)
             {
-                var s = sessions[i];
-                if (s.IsSystemSoundsSession) continue;
-                string name;
-                try { name = Process.GetProcessById((int)s.GetProcessID).ProcessName; }
-                catch (ArgumentException) { continue; } // 終了したプロセス
-                if (!string.Equals(name, _process, StringComparison.OrdinalIgnoreCase)) continue;
-                action(s.SimpleAudioVolume);
-                found = true;
+                // セッションは COM オブジェクトなので毎回解放する（2秒ごとに呼ばれる）
+                using var s = sessions[i];
+                try
+                {
+                    if (s.IsSystemSoundsSession) continue;
+                    string name;
+                    using (var proc = Process.GetProcessById((int)s.GetProcessID)) name = proc.ProcessName;
+                    if (!string.Equals(name, _process, StringComparison.OrdinalIgnoreCase)) continue;
+                    action(s.SimpleAudioVolume);
+                    found = true;
+                }
+                catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or System.Runtime.InteropServices.COMException)
+                {
+                    // 終了直後のプロセス・消えたセッション。ほかのセッションの確認は続ける
+                }
             }
             return found;
         }
@@ -286,10 +293,10 @@ internal sealed class BrightnessDial : IDialControl
     public void Dispose() { }
 }
 
-/// <summary>割り当てなし（function: none）</summary>
-internal sealed class NoneDial : IDialControl
+/// <summary>操作できないダイヤル（function: none、または音声機能が使えないとき）。理由を表示するだけ</summary>
+internal sealed class NoneDial(string reason = "割り当てなし") : IDialControl
 {
-    public string? Unavailable => "割り当てなし";
+    public string? Unavailable => reason;
     public int? Value => null;
     public bool Muted => false;
     public bool CanMute => false;
@@ -306,8 +313,9 @@ internal sealed class NoneDial : IDialControl
 /// </summary>
 internal sealed class DialManager : IDisposable
 {
-    private readonly MMDeviceEnumerator _enumerator = new();
-    private readonly MMDeviceNotificationClient _notify;
+    private readonly MMDeviceEnumerator? _enumerator;
+    private readonly MMDeviceNotificationClient? _notify;
+    private readonly string? _audioUnavailable;
     private IReadOnlyList<DeckDial> _defs = [];
     private List<(DeckDial Def, IDialControl Control)> _dials = [];
 
@@ -316,10 +324,27 @@ internal sealed class DialManager : IDisposable
 
     public DialManager()
     {
-        // 既定の機器が切り替わった（ヘッドセットを挿したなど）ら作り直す。UI スレッドに戻して通知される
-        _notify = _enumerator.CreateNotificationClient(true);
-        _notify.DefaultDeviceChanged += (_, _) => Rebuild(_defs, force: true);
+        // 音声サービス（Windows Audio）が止まっているなどで Core Audio が使えなくても、ランチャー自体は起動する
+        try
+        {
+            _enumerator = new MMDeviceEnumerator();
+            // 既定の機器が切り替わった（ヘッドセットを挿したなど）ら作り直す。UI スレッドに戻して通知される
+            _notify = _enumerator.CreateNotificationClient(true);
+            _notify.DefaultDeviceChanged += (_, _) => Rebuild(_defs, force: true);
+        }
+        catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException or InvalidOperationException or NotSupportedException)
+        {
+            _audioUnavailable = "音声機能を使えません（Windows Audio サービスが動いていない可能性）: " + ex.Message;
+            Logger.Warn(_audioUnavailable);
+            _notify?.Dispose();
+            _enumerator?.Dispose();
+            _enumerator = null;
+            _notify = null;
+        }
     }
+
+    /// <summary>音声機能が使えないときの理由（使えるときは null）。ランプの警告に使う</summary>
+    public string? AudioUnavailable => _audioUnavailable;
 
     public IReadOnlyList<(DeckDial Def, IDialControl Control)> Dials => _dials;
 
@@ -340,10 +365,12 @@ internal sealed class DialManager : IDisposable
 
     private IDialControl Create(DeckDial d) => d.Function switch
     {
-        "master_volume" => new EndpointVolumeDial(_enumerator, DataFlow.Render),
-        "mic_volume" => new EndpointVolumeDial(_enumerator, DataFlow.Capture),
-        "app_volume" => new AppVolumeDial(_enumerator, d.Process ?? ""),
         "brightness" => new BrightnessDial(),
+        "none" => new NoneDial(),
+        _ when _enumerator == null => new NoneDial("音声機能を使えません"),
+        "master_volume" => new EndpointVolumeDial(_enumerator!, DataFlow.Render),
+        "mic_volume" => new EndpointVolumeDial(_enumerator!, DataFlow.Capture),
+        "app_volume" => new AppVolumeDial(_enumerator!, d.Process ?? ""),
         _ => new NoneDial(),
     };
 
@@ -358,7 +385,7 @@ internal sealed class DialManager : IDisposable
     public void Dispose()
     {
         foreach (var (_, c) in _dials) c.Dispose();
-        _notify.Dispose();
-        _enumerator.Dispose();
+        _notify?.Dispose();
+        _enumerator?.Dispose();
     }
 }
